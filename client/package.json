@@ -13,7 +13,10 @@
     "@fontsource-variable/newsreader": "^5.2.8",
     "lucide-react": "^0.468.0",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react-day-picker": "^9.13.2",
+    "react-dom": "^19.2.0",
+    "react-is": "^19.2.0",
+    "recharts": "^3.11.0"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.9.1",
@@ -23,6 +26,7 @@
     "vite": "^7.2.2",
     "vitest": "^4.0.13"
   },
-  "engines": { "node": ">=20" }
+  "engines": {
+    "node": ">=20"
+  }
 }
-

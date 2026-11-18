@@ -3,6 +3,7 @@ import { apiRequest } from './api.js';
 import { AuthScreen } from './components/AuthScreen.jsx';
 import { Brand } from './components/Brand.jsx';
 import { Dashboard } from './components/Dashboard.jsx';
+import { ErrorBoundary } from './components/ErrorBoundary.jsx';
 
 const TOKEN_KEY = 'sweety_token';
 
@@ -40,6 +41,6 @@ export default function App() {
 
   if (!session.user) return <AuthScreen onAuthenticated={authenticated} />;
 
-  return <Dashboard session={session} onLogout={logout} />;
+  return <ErrorBoundary><Dashboard session={session} onLogout={logout} /></ErrorBoundary>;
 }
 
