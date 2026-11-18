@@ -1,12 +1,6 @@
-import { Coffee, MoonStar, Pencil, Plus, Sunrise, SunMedium, Trash2 } from 'lucide-react';
+import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { formatDisplayDate, SLOTS } from '../readingConfig.js';
-
-const SLOT_ICONS = {
-  morning: Sunrise,
-  after_breakfast: Coffee,
-  after_lunch: SunMedium,
-  after_dinner: MoonStar
-};
+import { SlotMomentIcon } from './SlotMomentIcon.jsx';
 
 export function DailyCheckins({ date, isToday, loading, readings, onSelect, onDelete, deletingId }) {
   return (
@@ -24,10 +18,9 @@ export function DailyCheckins({ date, isToday, loading, readings, onSelect, onDe
       <div className="checkin-list">
         {SLOTS.map((slot) => {
           const reading = readings.find((item) => item.slot === slot.value);
-          const Icon = SLOT_ICONS[slot.value];
           return (
             <article className={`checkin-row ${reading ? 'is-complete' : ''}`} key={slot.value}>
-              <span className={`checkin-row__moment checkin-row__moment--${slot.value}`} aria-hidden="true"><Icon size={20} /></span>
+              <SlotMomentIcon slot={slot.value} />
               <button className="checkin-row__main" disabled={loading} type="button" onClick={() => onSelect(slot.value, reading)}>
                 <span><strong>{slot.label}</strong><small>{reading?.notes || (reading ? 'Saved reading' : 'No reading yet')}</small></span>
                 {reading ? <span className="checkin-row__value"><strong>{reading.value}</strong><small>mg/dl</small></span> : <span className="checkin-row__add"><Plus size={16} /> Add</span>}

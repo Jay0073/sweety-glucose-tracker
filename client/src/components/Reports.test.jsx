@@ -1,11 +1,12 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { apiRequest } from '../api.js';
 import { Reports } from './Reports.jsx';
 
 vi.mock('../api.js', () => ({ apiRequest: vi.fn() }));
 vi.mock('./GlucoseTrend.jsx', () => ({ GlucoseTrend: () => <div>Trend chart</div> }));
 vi.mock('./ConsistencyCalendar.jsx', () => ({ ConsistencyCalendar: () => <div>Consistency calendar</div> }));
+vi.mock('./SlotAverages.jsx', () => ({ SlotAverages: () => <div>Slot averages</div> }));
 
 const dailyReport = {
   type: 'daily',
@@ -30,6 +31,8 @@ const monthReport = {
   readings: [...dailyReport.readings, { id: 3, readingDate: '2026-11-10', slot: 'morning', value: 108, notes: '' }]
 };
 
+beforeEach(() => vi.clearAllMocks());
+
 describe('Reports', () => {
   it('never renders a stale aggregate response as a daily report', async () => {
     let resolveSecondDaily;
@@ -40,6 +43,7 @@ describe('Reports', () => {
 
     render(<Reports selectedDate="2026-11-18" token="test-token" onDateChange={vi.fn()} />);
     expect(await screen.findByRole('heading', { name: '18 Nov 2026' })).toBeInTheDocument();
+    expect(screen.getByText('Average glucose')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('tab', { name: /month to date/i }));
     expect(await screen.findByRole('heading', { name: '1–18 Nov 2026' })).toBeInTheDocument();
@@ -50,5 +54,14 @@ describe('Reports', () => {
 
     await act(async () => resolveSecondDaily({ report: dailyReport }));
     expect(await screen.findByRole('heading', { name: '18 Nov 2026' })).toBeInTheDocument();
+  });
+
+  it('can open directly on the month-to-date report from the dashboard shortcut', async () => {
+    apiRequest.mockResolvedValueOnce({ report: monthReport });
+
+    render(<Reports initialType="month-to-date" selectedDate="2026-11-18" token="test-token" onDateChange={vi.fn()} />);
+
+    expect(await screen.findByRole('heading', { name: '1–18 Nov 2026' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /month to date/i })).toHaveAttribute('aria-selected', 'true');
   });
 });

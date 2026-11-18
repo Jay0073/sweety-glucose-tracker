@@ -7,6 +7,7 @@ import { Brand } from './Brand.jsx';
 import { DailyCheckins } from './DailyCheckins.jsx';
 import { DateNavigator } from './DateNavigator.jsx';
 import { DeleteDialog } from './DeleteDialog.jsx';
+import { MonthSnapshot } from './MonthSnapshot.jsx';
 import { ProfileMenu } from './ProfileMenu.jsx';
 import { ReadingForm } from './ReadingForm.jsx';
 
@@ -14,6 +15,7 @@ const Reports = lazy(() => import('./Reports.jsx').then((module) => ({ default: 
 
 export function Dashboard({ session, onLogout }) {
   const [activeView, setActiveView] = useState('readings');
+  const [reportEntryType, setReportEntryType] = useState('daily');
   const today = useMemo(localToday, []);
   const [date, setDate] = useState(today);
   const [readings, setReadings] = useState([]);
@@ -25,6 +27,7 @@ export function Dashboard({ session, onLogout }) {
   const [deletingId, setDeletingId] = useState(null);
   const [exporting, setExporting] = useState(false);
   const [notice, setNotice] = useState('');
+  const [reportRevision, setReportRevision] = useState(0);
   const formRef = useRef(null);
   const requestRef = useRef(0);
   const noticeTimeoutRef = useRef(null);
@@ -75,6 +78,7 @@ export function Dashboard({ session, onLogout }) {
   async function readingSaved(message) {
     setEditing(null);
     await loadReadings();
+    setReportRevision((current) => current + 1);
     showNotice(message);
   }
 
@@ -87,6 +91,7 @@ export function Dashboard({ session, onLogout }) {
       if (editing?.id === deleteTarget.id) setEditing(null);
       setDeleteTarget(null);
       await loadReadings();
+      setReportRevision((current) => current + 1);
       showNotice('Reading deleted.');
     } catch (deleteError) {
       setError(deleteError.message);
@@ -116,6 +121,11 @@ export function Dashboard({ session, onLogout }) {
     setDate(today);
   }
 
+  function openReports(type = 'daily') {
+    setReportEntryType(type);
+    setActiveView('reports');
+  }
+
   const firstName = session.user.name.split(' ')[0];
   const showForm = !loading && (readings.length < 4 || editing);
 
@@ -125,14 +135,14 @@ export function Dashboard({ session, onLogout }) {
         <Brand compact onClick={goHome} />
         <nav aria-label="Main navigation">
           <button aria-current={activeView === 'readings' ? 'page' : undefined} className={activeView === 'readings' ? 'is-active' : ''} type="button" onClick={() => setActiveView('readings')}><BookOpen size={16} /><span>Readings</span></button>
-          <button aria-current={activeView === 'reports' ? 'page' : undefined} className={activeView === 'reports' ? 'is-active' : ''} type="button" onClick={() => setActiveView('reports')}><BarChart3 size={16} /><span>Reports</span></button>
+          <button aria-current={activeView === 'reports' ? 'page' : undefined} className={activeView === 'reports' ? 'is-active' : ''} type="button" onClick={() => openReports('daily')}><BarChart3 size={16} /><span>Reports</span></button>
         </nav>
         <ProfileMenu exporting={exporting} user={session.user} onExportAll={exportAllHistory} onLogout={onLogout} />
       </header>
 
       {activeView === 'reports' ? (
         <Suspense fallback={<section className="report-loading"><span className="spinner" /><p>Opening reports…</p></section>}>
-          <Reports selectedDate={date} token={session.token} onDateChange={setDate} />
+          <Reports initialType={reportEntryType} selectedDate={date} token={session.token} onDateChange={setDate} />
         </Suspense>
       ) : (
         <div className="dashboard-content journal-view">
@@ -172,6 +182,13 @@ export function Dashboard({ session, onLogout }) {
               </div>
             )}
           </div>
+          <MonthSnapshot
+            date={date}
+            isToday={date === today}
+            refreshKey={reportRevision}
+            token={session.token}
+            onOpenReport={() => openReports('month-to-date')}
+          />
         </div>
       )}
 

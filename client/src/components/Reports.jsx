@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Activity, ArrowDown, ArrowUp, Download, Hash, Printer } from 'lucide-react';
+import { Activity, Download, Printer } from 'lucide-react';
 import { apiRequest } from '../api.js';
 import { downloadReadingsCsv } from '../exportUtils.js';
 import { formatDisplayDate, localToday, SLOT_LABELS } from '../readingConfig.js';
 import { ConsistencyCalendar } from './ConsistencyCalendar.jsx';
 import { DateNavigator } from './DateNavigator.jsx';
 import { GlucoseTrend } from './GlucoseTrend.jsx';
+import { SlotAverages } from './SlotAverages.jsx';
+import { SlotMomentIcon } from './SlotMomentIcon.jsx';
 
 const TYPES = [
   { value: 'daily', label: 'Daily', shortLabel: 'Day', description: 'One day' },
@@ -29,25 +31,17 @@ function formatRange(from, to) {
   return `${formatDisplayDate(from)} – ${formatDisplayDate(to)}`;
 }
 
-function Metric({ icon: Icon, label, value, unit }) {
-  const hasValue = value !== null && value !== undefined;
-  return (
-    <article className="report-metric">
-      <span><Icon size={18} /></span>
-      <div><small>{label}</small><p><strong>{hasValue ? value : '—'}</strong>{hasValue && unit ? <em>{unit}</em> : null}</p></div>
-    </article>
-  );
-}
-
-export function Reports({ token, selectedDate, onDateChange }) {
+export function Reports({ initialType = 'daily', token, selectedDate, onDateChange }) {
   const today = useMemo(localToday, []);
-  const [type, setType] = useState('daily');
+  const [type, setType] = useState(initialType);
   const requestKey = `${type}:${selectedDate}`;
   const [resource, setResource] = useState({ key: '', status: 'loading', report: null, error: '' });
   const isCurrent = resource.key === requestKey;
   const loading = !isCurrent || resource.status === 'loading';
   const report = isCurrent && resource.status === 'success' ? resource.report : null;
   const error = isCurrent && resource.status === 'error' ? resource.error : '';
+
+  useEffect(() => setType(initialType), [initialType]);
 
   useEffect(() => {
     let active = true;
@@ -107,11 +101,16 @@ export function Reports({ token, selectedDate, onDateChange }) {
             {report.count === 0 ? (
               <div className="report-empty"><span><Activity size={25} /></span><div><strong>No readings in this period</strong><p>Add readings for this range and return here to see a summary and trend.</p></div></div>
             ) : (
-              <div className="report-metrics">
-                <Metric icon={ArrowUp} label="Highest" value={report.highest} unit="mg/dl" />
-                <Metric icon={ArrowDown} label="Lowest" value={report.lowest} unit="mg/dl" />
-                <Metric icon={Activity} label="Average" value={report.average.toFixed(1)} unit="mg/dl" />
-                <Metric icon={Hash} label="Readings" value={report.count} />
+              <div className="report-stat-ledger">
+                <article className="report-average">
+                  <small>Average glucose</small>
+                  <p><strong>{report.average.toFixed(1)}</strong><span>mg/dl</span></p>
+                </article>
+                <dl className="report-stat-list">
+                  <div><dt>Highest</dt><dd>{report.highest} <span>mg/dl</span></dd></div>
+                  <div><dt>Lowest</dt><dd>{report.lowest} <span>mg/dl</span></dd></div>
+                  <div><dt>Readings</dt><dd>{report.count}</dd></div>
+                </dl>
               </div>
             )}
           </section>
@@ -119,7 +118,10 @@ export function Reports({ token, selectedDate, onDateChange }) {
           {report.count > 0 && <GlucoseTrend daily={type === 'daily'} readings={report.readings} />}
 
           {type !== 'daily' && (
-            <ConsistencyCalendar currentRange={type === 'month-to-date'} from={report.from} readings={report.readings} to={report.to} />
+            <>
+              <SlotAverages from={report.from} readings={report.readings} to={report.to} />
+              <ConsistencyCalendar currentRange={type === 'month-to-date'} from={report.from} readings={report.readings} to={report.to} />
+            </>
           )}
 
           {type === 'daily' && report.readings.length > 0 && (
@@ -128,7 +130,7 @@ export function Reports({ token, selectedDate, onDateChange }) {
               <div className="daily-report-list__items">
                 {report.readings.map((reading) => (
                   <article className="daily-report-row" key={reading.id}>
-                    <span className={`slot-symbol slot-symbol--${reading.slot}`} />
+                    <SlotMomentIcon slot={reading.slot} />
                     <div><strong>{SLOT_LABELS[reading.slot]}</strong>{reading.notes && <small>{reading.notes}</small>}</div>
                     <p><b>{reading.value}</b> mg/dl</p>
                   </article>
