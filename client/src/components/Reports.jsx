@@ -1,13 +1,23 @@
-import { useEffect, useState } from 'react';
-import { Activity, ArrowDown, ArrowUp, CalendarDays, Hash } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { Activity, ArrowDown, ArrowUp, Download, Hash, Printer } from 'lucide-react';
 import { apiRequest } from '../api.js';
+import { downloadReadingsCsv } from '../exportUtils.js';
 import { formatDisplayDate, localToday, SLOT_LABELS } from '../readingConfig.js';
+import { ConsistencyCalendar } from './ConsistencyCalendar.jsx';
+import { DateNavigator } from './DateNavigator.jsx';
+import { GlucoseTrend } from './GlucoseTrend.jsx';
 
 const TYPES = [
-  { value: 'daily', label: 'Daily', description: 'Selected date' },
-  { value: 'month-to-date', label: 'Month to date', description: 'Month through date' },
-  { value: 'monthly', label: 'Previous month', description: 'Full previous month' }
+  { value: 'daily', label: 'Daily', shortLabel: 'Day', description: 'One day' },
+  { value: 'month-to-date', label: 'Month to date', shortLabel: 'This month', description: 'Month through date' },
+  { value: 'monthly', label: 'Previous month', shortLabel: 'Last month', description: 'Complete month' }
 ];
+
+const REPORT_COPY = {
+  daily: 'See each check-in and how the day moved.',
+  'month-to-date': 'Follow every saved reading from the first of the month.',
+  monthly: 'Review the complete previous month and its logging rhythm.'
+};
 
 function formatRange(from, to) {
   if (from === to) return formatDisplayDate(from);
@@ -20,46 +30,67 @@ function formatRange(from, to) {
 }
 
 function Metric({ icon: Icon, label, value, unit }) {
+  const hasValue = value !== null && value !== undefined;
   return (
     <article className="report-metric">
       <span><Icon size={18} /></span>
-      <div><small>{label}</small><p>{value ?? '—'}{value !== null && value !== undefined && unit ? <em>{unit}</em> : null}</p></div>
+      <div><small>{label}</small><p><strong>{hasValue ? value : '—'}</strong>{hasValue && unit ? <em>{unit}</em> : null}</p></div>
     </article>
   );
 }
 
-export function Reports({ token }) {
-  const today = localToday();
-  const [selectedDate, setSelectedDate] = useState(today);
+export function Reports({ token, selectedDate, onDateChange }) {
+  const today = useMemo(localToday, []);
   const [type, setType] = useState('daily');
-  const [report, setReport] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const requestKey = `${type}:${selectedDate}`;
+  const [resource, setResource] = useState({ key: '', status: 'loading', report: null, error: '' });
+  const isCurrent = resource.key === requestKey;
+  const loading = !isCurrent || resource.status === 'loading';
+  const report = isCurrent && resource.status === 'success' ? resource.report : null;
+  const error = isCurrent && resource.status === 'error' ? resource.error : '';
 
   useEffect(() => {
     let active = true;
-    setLoading(true);
-    setError('');
+    setResource({ key: requestKey, status: 'loading', report: null, error: '' });
     apiRequest(`/reports/${type}?date=${selectedDate}`, { token })
-      .then((result) => { if (active) setReport(result.report); })
-      .catch((loadError) => { if (active) setError(loadError.message); })
-      .finally(() => { if (active) setLoading(false); });
+      .then((result) => {
+        if (active) setResource({ key: requestKey, status: 'success', report: result.report, error: '' });
+      })
+      .catch((loadError) => {
+        if (active) setResource({ key: requestKey, status: 'error', report: null, error: loadError.message });
+      });
     return () => { active = false; };
-  }, [selectedDate, token, type]);
+  }, [requestKey, selectedDate, token, type]);
+
+  function exportCurrentReport() {
+    if (!report) return;
+    downloadReadingsCsv(report.readings, `sweety-${type}-${report.from}-to-${report.to}.csv`);
+  }
 
   return (
     <div className="dashboard-content reports-view">
       <section className="day-heading reports-heading">
-        <div><p className="eyebrow">Reports</p><h1>See the pattern,<br />one range at a time.</h1><p>Choose a date, then compare the day, month so far, or previous month.</p></div>
-        <label className="date-control"><CalendarDays size={18} /><span>Selected date</span><input max={today} type="date" value={selectedDate} onChange={(event) => setSelectedDate(event.target.value)} /></label>
+        <div>
+          <p className="eyebrow">Reports</p>
+          <h1>Your glucose,<br /> over time.</h1>
+          <p>{REPORT_COPY[type]}</p>
+        </div>
       </section>
 
-      <div className="report-type-switch" role="tablist" aria-label="Report range">
-        {TYPES.map((option) => (
-          <button className={type === option.value ? 'is-active' : ''} key={option.value} type="button" role="tab" aria-selected={type === option.value} onClick={() => setType(option.value)}>
-            <strong>{option.label}</strong><small>{option.description}</small>
-          </button>
-        ))}
+      <DateNavigator label="Report date" max={today} value={selectedDate} onChange={onDateChange} />
+
+      <div className="report-toolbar">
+        <div className="report-type-switch" role="tablist" aria-label="Report range">
+          {TYPES.map((option) => (
+            <button aria-label={`${option.label}: ${option.description}`} className={type === option.value ? 'is-active' : ''} key={option.value} role="tab" aria-selected={type === option.value} type="button" onClick={() => setType(option.value)}>
+              <strong><span className="report-label-full">{option.label}</span><span className="report-label-short">{option.shortLabel}</span></strong><small>{option.description}</small>
+            </button>
+          ))}
+        </div>
+        <div className="report-actions">
+          <button disabled={!report?.readings?.length} type="button" onClick={exportCurrentReport}><Download size={17} /><span>Export CSV</span></button>
+          <button disabled={!report} type="button" onClick={() => window.print()}><Printer size={17} /><span>Print / PDF</span></button>
+        </div>
       </div>
 
       {error && <p className="page-error" role="alert">{error}</p>}
@@ -74,7 +105,7 @@ export function Reports({ token }) {
             </div>
 
             {report.count === 0 ? (
-              <div className="report-empty"><span><Activity size={25} /></span><div><strong>No readings in this period</strong><p>Add readings for this range and return here to see your summary.</p></div></div>
+              <div className="report-empty"><span><Activity size={25} /></span><div><strong>No readings in this period</strong><p>Add readings for this range and return here to see a summary and trend.</p></div></div>
             ) : (
               <div className="report-metrics">
                 <Metric icon={ArrowUp} label="Highest" value={report.highest} unit="mg/dl" />
@@ -85,12 +116,22 @@ export function Reports({ token }) {
             )}
           </section>
 
-          {type === 'daily' && report.count > 0 && (
+          {report.count > 0 && <GlucoseTrend daily={type === 'daily'} readings={report.readings} />}
+
+          {type !== 'daily' && (
+            <ConsistencyCalendar currentRange={type === 'month-to-date'} from={report.from} readings={report.readings} to={report.to} />
+          )}
+
+          {type === 'daily' && report.readings.length > 0 && (
             <section className="daily-report-list" aria-labelledby="daily-detail-title">
               <div className="section-heading"><div><p className="eyebrow">Daily detail</p><h2 id="daily-detail-title">Each check-in</h2></div></div>
               <div className="daily-report-list__items">
                 {report.readings.map((reading) => (
-                  <article className="daily-report-row" key={reading.id}><span className={`slot-symbol slot-symbol--${reading.slot}`} /><strong>{SLOT_LABELS[reading.slot]}</strong><p><b>{reading.value}</b> mg/dl</p></article>
+                  <article className="daily-report-row" key={reading.id}>
+                    <span className={`slot-symbol slot-symbol--${reading.slot}`} />
+                    <div><strong>{SLOT_LABELS[reading.slot]}</strong>{reading.notes && <small>{reading.notes}</small>}</div>
+                    <p><b>{reading.value}</b> mg/dl</p>
+                  </article>
                 ))}
               </div>
             </section>
@@ -100,4 +141,3 @@ export function Reports({ token }) {
     </div>
   );
 }
-
