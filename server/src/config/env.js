@@ -11,7 +11,7 @@ function required(name) {
 export const env = {
   nodeEnv: process.env.NODE_ENV ?? 'development',
   port: Number(process.env.PORT ?? 4000),
-  databaseUrl: process.env.DATABASE_URL ?? 'postgresql://sweety:sweety@localhost:5432/sweety',
+  databaseUrl: process.env.DATABASE_URL ?? 'postgresql://sweety:sweety@127.0.0.1:5433/sweety',
   testDatabaseUrl: process.env.TEST_DATABASE_URL,
   jwtSecret: process.env.NODE_ENV === 'test'
     ? (process.env.JWT_SECRET ?? 'test-secret-only')

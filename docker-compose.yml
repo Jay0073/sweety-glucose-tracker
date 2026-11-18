@@ -6,7 +6,7 @@ services:
       POSTGRES_USER: sweety
       POSTGRES_PASSWORD: sweety
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - sweety_postgres_data:/var/lib/postgresql/data
       - ./server/docker/init-test-db.sql:/docker-entrypoint-initdb.d/init-test-db.sql:ro
