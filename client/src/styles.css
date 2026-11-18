@@ -1,0 +1,77 @@
+:root {
+  font-family: 'Manrope Variable', system-ui, sans-serif;
+  color: #17312f;
+  background: #eef7f5;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+.launch-shell {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 24px;
+}
+
+.launch-card {
+  width: min(100%, 680px);
+  padding: clamp(32px, 7vw, 64px);
+  border: 1px solid #c8dfda;
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 24px 70px rgba(16, 71, 65, 0.12);
+}
+
+.brand-mark {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  border-radius: 15px 15px 15px 5px;
+  color: white;
+  background: #0d6b62;
+  font-weight: 800;
+}
+
+.eyebrow {
+  margin: 30px 0 8px;
+  color: #0d6b62;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+h1 {
+  margin: 0;
+  font-family: 'Newsreader Variable', Georgia, serif;
+  font-size: clamp(2.5rem, 8vw, 4.5rem);
+  font-weight: 500;
+  letter-spacing: -0.045em;
+  line-height: 0.98;
+}
+
+.launch-card > p:not(.eyebrow) {
+  margin: 22px 0;
+  color: #526966;
+  line-height: 1.7;
+}
+
+a {
+  color: #0d6b62;
+  font-weight: 750;
+  text-underline-offset: 4px;
+}
+
+:focus-visible {
+  outline: 3px solid #e5a93f;
+  outline-offset: 3px;
+}
