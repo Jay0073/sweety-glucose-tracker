@@ -18,13 +18,9 @@ function dateInTimeZone(date = new Date()) {
   return `${value.year}-${value.month}-${value.day}`;
 }
 
-function addUtcDays(dateString, amount) {
-  const date = new Date(`${dateString}T12:00:00Z`);
-  date.setUTCDate(date.getUTCDate() + amount);
-  return date.toISOString().slice(0, 10);
-}
+const SLOT_ORDER = ['morning', 'after_breakfast', 'after_lunch', 'after_dinner'];
 
-function previousMonthDates(today) {
+function previousMonthInfo(today) {
   const [year, month] = today.split('-').map(Number);
   const firstOfThisMonth = new Date(Date.UTC(year, month - 1, 1));
   const previousYear = firstOfThisMonth.getUTCMonth() === 0
@@ -36,7 +32,64 @@ function previousMonthDates(today) {
   const lastDay = new Date(Date.UTC(year, month - 1, 0)).getUTCDate();
   const prefix = `${previousYear}-${String(previousMonth).padStart(2, '0')}`;
 
-  return [`${prefix}-05`, `${prefix}-15`, `${prefix}-${String(lastDay).padStart(2, '0')}`];
+  return { prefix, lastDay };
+}
+
+function contextualNote(day, slot) {
+  if (slot === 'morning' && day % 6 === 0) return 'Slept well and checked before breakfast.';
+  if (slot === 'after_breakfast' && day % 8 === 0) return 'Had oats and fruit for breakfast.';
+  if (slot === 'after_lunch' && day % 9 === 0) return 'Walked for 20 minutes after lunch.';
+  if (slot === 'after_dinner' && day % 10 === 0) return 'Dinner was later than usual.';
+  return null;
+}
+
+function readingValue(day, slot, monthOffset = 0) {
+  const morning = 92 + ((day * 3 + monthOffset) % 19);
+  const offsets = {
+    morning: 0,
+    after_breakfast: 29 + (day % 7),
+    after_lunch: 24 + ((day * 2) % 11),
+    after_dinner: 34 + ((day * 3) % 13)
+  };
+  const occasionalLift = day % 11 === 0 && slot !== 'morning' ? 12 : 0;
+  return morning + offsets[slot] + occasionalLift;
+}
+
+function currentMonthSample(today) {
+  const [year, month, todayNumber] = today.split('-').map(Number);
+  const prefix = `${year}-${String(month).padStart(2, '0')}`;
+  const readings = [];
+
+  for (let day = 1; day <= todayNumber; day += 1) {
+    if (day === 3 || day === 12) continue;
+    const readingCount = day === todayNumber ? 3 : day % 7 === 0 ? 1 : day % 5 === 0 ? 2 : day % 4 === 0 ? 3 : 4;
+    SLOT_ORDER.slice(0, readingCount).forEach((slot) => {
+      const date = `${prefix}-${String(day).padStart(2, '0')}`;
+      let notes = contextualNote(day, slot);
+      if (day === todayNumber && slot === 'morning') notes = 'Fasting reading before breakfast.';
+      if (day === todayNumber && slot === 'after_breakfast') notes = 'Took the usual morning medicine.';
+      if (day === todayNumber && slot === 'after_lunch') notes = 'A lighter lunch followed by a short walk.';
+      readings.push([date, slot, readingValue(day, slot), notes]);
+    });
+  }
+
+  return readings;
+}
+
+function previousMonthSample(today) {
+  const { prefix, lastDay } = previousMonthInfo(today);
+  const readings = [];
+
+  for (let day = 1; day <= lastDay; day += 1) {
+    if (day % 8 === 0 || day === 23) continue;
+    const readingCount = day % 6 === 0 ? 2 : day % 4 === 0 ? 3 : 4;
+    SLOT_ORDER.slice(0, readingCount).forEach((slot) => {
+      const date = `${prefix}-${String(day).padStart(2, '0')}`;
+      readings.push([date, slot, readingValue(day, slot, 5), contextualNote(day, slot)]);
+    });
+  }
+
+  return readings;
 }
 
 async function seed() {
@@ -56,22 +109,8 @@ async function seed() {
     );
 
     const today = dateInTimeZone();
-    const currentMonthReadings = [
-      [addUtcDays(today, -4), 'morning', 104, 'Fasting reading before breakfast.'],
-      [addUtcDays(today, -4), 'after_breakfast', 142, 'Had oats and fruit for breakfast.'],
-      [addUtcDays(today, -2), 'morning', 98, 'Morning walk before checking.'],
-      [addUtcDays(today, -2), 'after_dinner', 151, 'Dinner was later than usual.'],
-      [today, 'morning', 101, 'Fasting reading.'],
-      [today, 'after_breakfast', 137, 'Took the usual morning medicine.']
-    ];
-    const [previousEarly, previousMiddle, previousLast] = previousMonthDates(today);
-    const previousMonthReadings = [
-      [previousEarly, 'morning', 107, null],
-      [previousEarly, 'after_lunch', 148, 'Ate out for lunch.'],
-      [previousMiddle, 'morning', 99, 'Slept well.'],
-      [previousMiddle, 'after_dinner', 156, 'Skipped the evening walk.'],
-      [previousLast, 'after_breakfast', 139, null]
-    ];
+    const currentMonthReadings = currentMonthSample(today);
+    const previousMonthReadings = previousMonthSample(today);
 
     for (const [readingDate, slot, value, notes] of [...currentMonthReadings, ...previousMonthReadings]) {
       await client.query(
