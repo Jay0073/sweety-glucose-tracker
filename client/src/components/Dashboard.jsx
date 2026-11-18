@@ -6,8 +6,10 @@ import { Brand } from './Brand.jsx';
 import { DayRail } from './DayRail.jsx';
 import { ReadingForm } from './ReadingForm.jsx';
 import { ReadingList } from './ReadingList.jsx';
+import { Reports } from './Reports.jsx';
 
 export function Dashboard({ session, onLogout }) {
+  const [activeView, setActiveView] = useState('readings');
   const today = useMemo(localToday, []);
   const [date, setDate] = useState(today);
   const [readings, setReadings] = useState([]);
@@ -74,11 +76,14 @@ export function Dashboard({ session, onLogout }) {
     <main className="dashboard-shell">
       <header className="dashboard-header">
         <Brand compact />
-        <nav aria-label="Main navigation"><button className="is-active" type="button">Readings</button><button disabled type="button">Reports</button></nav>
+        <nav aria-label="Main navigation">
+          <button className={activeView === 'readings' ? 'is-active' : ''} type="button" onClick={() => setActiveView('readings')}>Readings</button>
+          <button className={activeView === 'reports' ? 'is-active' : ''} type="button" onClick={() => setActiveView('reports')}>Reports</button>
+        </nav>
         <div className="dashboard-header__user"><span>Hi, {firstName}</span><button type="button" onClick={onLogout} aria-label="Log out"><LogOut size={18} /></button></div>
       </header>
 
-      <div className="dashboard-content">
+      {activeView === 'reports' ? <Reports token={session.token} /> : <div className="dashboard-content">
         <section className="day-heading">
           <div><p className="eyebrow">Daily journal</p><h1>{date === today ? `Good day, ${firstName}.` : formatDisplayDate(date)}</h1><p>{date === today ? 'A quick check-in keeps your day on track.' : 'Review or update the readings saved for this date.'}</p></div>
           <label className="date-control"><CalendarDays size={18} /><span>Date</span><input max={today} type="date" value={date} onChange={(event) => setDate(event.target.value)} /></label>
@@ -99,7 +104,7 @@ export function Dashboard({ session, onLogout }) {
           )}
           <ReadingList readings={readings} onEdit={editReading} onDelete={deleteReading} deletingId={deletingId} />
         </div>
-      </div>
+      </div>}
     </main>
   );
 }

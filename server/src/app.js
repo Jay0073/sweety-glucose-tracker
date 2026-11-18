@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import { env } from './config/env.js';
 import { authRouter } from './routes/auth.routes.js';
 import { readingsRouter } from './routes/readings.routes.js';
+import { reportsRouter } from './routes/reports.routes.js';
 import { ApiError } from './utils/ApiError.js';
 
 export const app = express();
@@ -19,6 +20,7 @@ app.get('/api/health', (_request, response) => {
 
 app.use('/api/auth', authRouter);
 app.use('/api/readings', readingsRouter);
+app.use('/api/reports', reportsRouter);
 
 app.use((request, response) => {
   response.status(404).json({ message: `Route not found: ${request.method} ${request.path}` });
