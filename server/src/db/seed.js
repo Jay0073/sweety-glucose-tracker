@@ -57,27 +57,27 @@ async function seed() {
 
     const today = dateInTimeZone();
     const currentMonthReadings = [
-      [addUtcDays(today, -4), 'morning', 104],
-      [addUtcDays(today, -4), 'after_breakfast', 142],
-      [addUtcDays(today, -2), 'morning', 98],
-      [addUtcDays(today, -2), 'after_dinner', 151],
-      [today, 'morning', 101],
-      [today, 'after_breakfast', 137]
+      [addUtcDays(today, -4), 'morning', 104, 'Fasting reading before breakfast.'],
+      [addUtcDays(today, -4), 'after_breakfast', 142, 'Had oats and fruit for breakfast.'],
+      [addUtcDays(today, -2), 'morning', 98, 'Morning walk before checking.'],
+      [addUtcDays(today, -2), 'after_dinner', 151, 'Dinner was later than usual.'],
+      [today, 'morning', 101, 'Fasting reading.'],
+      [today, 'after_breakfast', 137, 'Took the usual morning medicine.']
     ];
     const [previousEarly, previousMiddle, previousLast] = previousMonthDates(today);
     const previousMonthReadings = [
-      [previousEarly, 'morning', 107],
-      [previousEarly, 'after_lunch', 148],
-      [previousMiddle, 'morning', 99],
-      [previousMiddle, 'after_dinner', 156],
-      [previousLast, 'after_breakfast', 139]
+      [previousEarly, 'morning', 107, null],
+      [previousEarly, 'after_lunch', 148, 'Ate out for lunch.'],
+      [previousMiddle, 'morning', 99, 'Slept well.'],
+      [previousMiddle, 'after_dinner', 156, 'Skipped the evening walk.'],
+      [previousLast, 'after_breakfast', 139, null]
     ];
 
-    for (const [readingDate, slot, value] of [...currentMonthReadings, ...previousMonthReadings]) {
+    for (const [readingDate, slot, value, notes] of [...currentMonthReadings, ...previousMonthReadings]) {
       await client.query(
-        `INSERT INTO readings (user_id, reading_date, slot, value)
-         VALUES ($1, $2, $3, $4)`,
-        [userResult.rows[0].id, readingDate, slot, value]
+        `INSERT INTO readings (user_id, reading_date, slot, value, notes)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [userResult.rows[0].id, readingDate, slot, value, notes]
       );
     }
 

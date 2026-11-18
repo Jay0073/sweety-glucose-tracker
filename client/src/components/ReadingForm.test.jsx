@@ -51,12 +51,15 @@ describe('ReadingForm', () => {
     fireEvent.change(screen.getByRole('spinbutton', { name: /glucose value/i }), {
       target: { value: '128' }
     });
+    fireEvent.change(screen.getByRole('textbox', { name: /notes/i }), {
+      target: { value: 'Walked after lunch.' }
+    });
     fireEvent.click(screen.getByRole('button', { name: /save reading/i }));
 
     await waitFor(() => expect(apiRequest).toHaveBeenCalledWith('/readings', {
       method: 'POST',
       token: 'test-token',
-      body: { readingDate: '2025-01-15', slot: 'after_lunch', value: 128 }
+      body: { readingDate: '2025-01-15', slot: 'after_lunch', value: 128, notes: 'Walked after lunch.' }
     }));
     expect(baseProps.onSaved).toHaveBeenCalledOnce();
   });
@@ -67,7 +70,8 @@ describe('ReadingForm', () => {
       id: 7,
       readingDate: '2025-01-15',
       slot: 'after_breakfast',
-      value: 132
+      value: 132,
+      notes: 'Ate fruit with breakfast.'
     };
     render(<ReadingForm {...baseProps} editing={editing} readings={[editing]} />);
 
@@ -79,7 +83,7 @@ describe('ReadingForm', () => {
     await waitFor(() => expect(apiRequest).toHaveBeenCalledWith('/readings/7', {
       method: 'PATCH',
       token: 'test-token',
-      body: { readingDate: '2025-01-15', slot: 'after_breakfast', value: 140 }
+      body: { readingDate: '2025-01-15', slot: 'after_breakfast', value: 140, notes: 'Ate fruit with breakfast.' }
     }));
   });
 });

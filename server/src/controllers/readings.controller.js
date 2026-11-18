@@ -5,6 +5,11 @@ export async function list(request, response) {
   response.json(result);
 }
 
+export async function exportAll(request, response) {
+  const result = await readingsService.exportReadings(request.user.id);
+  response.json(result);
+}
+
 export async function create(request, response) {
   const reading = await readingsService.createReading(request.user.id, request.body ?? {});
   response.status(201).json({ reading });

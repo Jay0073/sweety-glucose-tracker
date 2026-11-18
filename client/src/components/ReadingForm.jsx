@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ArrowRight, Check, X } from 'lucide-react';
+import { ArrowRight, Check, NotebookPen, X } from 'lucide-react';
 import { apiRequest } from '../api.js';
 import { SLOTS } from '../readingConfig.js';
 
@@ -18,6 +18,7 @@ export function validateReadingForm({ value, readingDate, slot }, today) {
 export function ReadingForm({ date, editing, readings, selectedSlot, token, today, onSaved, onCancel }) {
   const [value, setValue] = useState('');
   const [slot, setSlot] = useState(selectedSlot ?? '');
+  const [notes, setNotes] = useState('');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const inputRef = useRef(null);
@@ -25,6 +26,7 @@ export function ReadingForm({ date, editing, readings, selectedSlot, token, toda
   useEffect(() => {
     setValue(editing ? String(editing.value) : '');
     setSlot(editing?.slot ?? selectedSlot ?? '');
+    setNotes(editing?.notes ?? '');
     setError('');
   }, [editing, selectedSlot, date]);
 
@@ -49,10 +51,11 @@ export function ReadingForm({ date, editing, readings, selectedSlot, token, toda
       await apiRequest(path, {
         method: editing ? 'PATCH' : 'POST',
         token,
-        body: { readingDate: date, slot, value: Number(value) }
+        body: { readingDate: date, slot, value: Number(value), notes }
       });
       setValue('');
-      await onSaved();
+      setNotes('');
+      await onSaved(editing ? 'Reading updated.' : 'Reading saved.');
     } catch (saveError) {
       setError(saveError.message);
     } finally {
@@ -113,6 +116,19 @@ export function ReadingForm({ date, editing, readings, selectedSlot, token, toda
             <strong>mg/dl</strong>
           </span>
           <small id="value-hint">Whole number from 40 to 600</small>
+        </label>
+
+        <label className="notes-field">
+          <span><NotebookPen size={16} /> Notes <small>Optional</small></span>
+          <textarea
+            maxLength={500}
+            name="notes"
+            onChange={(event) => setNotes(event.target.value)}
+            placeholder="Meal, medicine, activity, stress, illness, or anything that adds context…"
+            rows={3}
+            value={notes}
+          />
+          <small>{notes.length}/500 characters</small>
         </label>
 
         {error && <p className="form-error entry-error" role="alert">{error}</p>}

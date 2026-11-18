@@ -23,11 +23,11 @@ function authenticated(token) {
   return { Authorization: `Bearer ${token}` };
 }
 
-async function addReading(token, readingDate, slot, value) {
+async function addReading(token, readingDate, slot, value, notes) {
   return request(app)
     .post('/api/readings')
     .set(authenticated(token))
-    .send({ readingDate, slot, value });
+    .send({ readingDate, slot, value, notes });
 }
 
 before(async () => {
@@ -153,6 +153,32 @@ describe('readings', () => {
     assert.equal(page.body.data[0].readingDate, '2025-03-03');
     assert.deepEqual(page.body.pagination, { page: 1, limit: 2, total: 3, totalPages: 2 });
   });
+
+  test('stores contextual notes and exports only the authenticated user history', async () => {
+    const owner = await register({ email: 'notes@example.com' });
+    const other = await register({ email: 'private@example.com' });
+    const created = await addReading(owner.token, '2025-03-04', 'after_lunch', 146, 'Ate rice and walked afterwards.');
+    assert.equal(created.status, 201);
+    assert.equal(created.body.reading.notes, 'Ate rice and walked afterwards.');
+
+    const updated = await request(app)
+      .patch(`/api/readings/${created.body.reading.id}`)
+      .set(authenticated(owner.token))
+      .send({ notes: 'Smaller lunch and a short walk.' });
+    assert.equal(updated.body.reading.notes, 'Smaller lunch and a short walk.');
+
+    const ownerExport = await request(app).get('/api/readings/export').set(authenticated(owner.token));
+    assert.equal(ownerExport.status, 200);
+    assert.equal(ownerExport.body.data.length, 1);
+    assert.equal(ownerExport.body.data[0].notes, 'Smaller lunch and a short walk.');
+
+    const otherExport = await request(app).get('/api/readings/export').set(authenticated(other.token));
+    assert.equal(otherExport.body.data.length, 0);
+
+    const tooLong = await addReading(owner.token, '2025-03-05', 'morning', 100, 'x'.repeat(501));
+    assert.equal(tooLong.status, 400);
+    assert.equal(tooLong.body.message, 'Notes must be 500 characters or fewer.');
+  });
 });
 
 describe('reports', () => {
@@ -195,6 +221,7 @@ describe('reports', () => {
       },
       { from: '2024-12-01', to: '2024-12-31', average: 130, count: 2 }
     );
+    assert.equal(response.body.report.readings.length, 2);
   });
 
   test('returns null statistics for an empty report', async () => {

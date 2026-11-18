@@ -28,12 +28,23 @@ function toReading(row) {
     readingDate: row.reading_date,
     slot: row.slot,
     value: row.value,
+    notes: row.notes ?? '',
     createdAt: row.created_at,
     updatedAt: row.updated_at
   };
 }
 
-function validateFields({ readingDate, slot, value }) {
+function normalizeNotes(notes) {
+  if (notes === undefined || notes === null) return null;
+  if (typeof notes !== 'string') throw new ApiError(400, 'Notes must be text.');
+  const normalized = notes.trim();
+  if (normalized.length > 500) {
+    throw new ApiError(400, 'Notes must be 500 characters or fewer.');
+  }
+  return normalized || null;
+}
+
+function validateFields({ readingDate, slot, value, notes }) {
   if (value === undefined || value === null || value === '') {
     throw new ApiError(400, 'Please enter a glucose value.');
   }
@@ -52,7 +63,7 @@ function validateFields({ readingDate, slot, value }) {
     throw new ApiError(400, 'Please pick a time slot.');
   }
 
-  return { readingDate, slot, value: numericValue };
+  return { readingDate, slot, value: numericValue, notes: normalizeNotes(notes) };
 }
 
 async function validateDayRules(database, userId, input, excludeId = null) {
@@ -77,7 +88,7 @@ export async function listReadings(userId, { date, page = 1, limit = 20 }) {
   if (date !== undefined) {
     if (!isValidDateString(date)) throw new ApiError(400, 'Please pick a valid date.');
     const result = await pool.query(
-      `SELECT id, reading_date::text, slot, value, created_at, updated_at
+      `SELECT id, reading_date::text, slot, value, notes, created_at, updated_at
          FROM readings
         WHERE user_id = $1 AND reading_date = $2
         ORDER BY CASE slot
@@ -103,7 +114,7 @@ export async function listReadings(userId, { date, page = 1, limit = 20 }) {
   const offset = (parsedPage - 1) * parsedLimit;
   const [readingsResult, countResult] = await Promise.all([
     pool.query(
-      `SELECT id, reading_date::text, slot, value, created_at, updated_at
+      `SELECT id, reading_date::text, slot, value, notes, created_at, updated_at
          FROM readings
         WHERE user_id = $1
         ORDER BY reading_date DESC, CASE slot
@@ -130,6 +141,22 @@ export async function listReadings(userId, { date, page = 1, limit = 20 }) {
   };
 }
 
+export async function exportReadings(userId) {
+  const result = await pool.query(
+    `SELECT id, reading_date::text, slot, value, notes, created_at, updated_at
+       FROM readings
+      WHERE user_id = $1
+      ORDER BY reading_date ASC, CASE slot
+        WHEN 'morning' THEN 1
+        WHEN 'after_breakfast' THEN 2
+        WHEN 'after_lunch' THEN 3
+        WHEN 'after_dinner' THEN 4
+      END`,
+    [userId]
+  );
+  return { data: result.rows.map(toReading) };
+}
+
 export async function createReading(userId, body) {
   const input = validateFields(body);
   const client = await pool.connect();
@@ -138,10 +165,10 @@ export async function createReading(userId, body) {
     await client.query('BEGIN');
     await validateDayRules(client, userId, input);
     const result = await client.query(
-      `INSERT INTO readings (user_id, reading_date, slot, value)
-       VALUES ($1, $2, $3, $4)
-       RETURNING id, reading_date::text, slot, value, created_at, updated_at`,
-      [userId, input.readingDate, input.slot, input.value]
+      `INSERT INTO readings (user_id, reading_date, slot, value, notes)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING id, reading_date::text, slot, value, notes, created_at, updated_at`,
+      [userId, input.readingDate, input.slot, input.value, input.notes]
     );
     await client.query('COMMIT');
     return toReading(result.rows[0]);
@@ -164,7 +191,7 @@ export async function updateReading(userId, readingId, changes) {
   try {
     await client.query('BEGIN');
     const currentResult = await client.query(
-      `SELECT id, reading_date::text, slot, value
+      `SELECT id, reading_date::text, slot, value, notes
          FROM readings
         WHERE id = $1 AND user_id = $2
         FOR UPDATE`,
@@ -176,16 +203,17 @@ export async function updateReading(userId, readingId, changes) {
     input = validateFields({
       readingDate: changes.readingDate ?? current.reading_date,
       slot: changes.slot ?? current.slot,
-      value: changes.value ?? current.value
+      value: changes.value ?? current.value,
+      notes: changes.notes !== undefined ? changes.notes : current.notes
     });
     await validateDayRules(client, userId, input, id);
 
     const result = await client.query(
       `UPDATE readings
-          SET reading_date = $1, slot = $2, value = $3, updated_at = NOW()
-        WHERE id = $4 AND user_id = $5
-        RETURNING id, reading_date::text, slot, value, created_at, updated_at`,
-      [input.readingDate, input.slot, input.value, id, userId]
+          SET reading_date = $1, slot = $2, value = $3, notes = $4, updated_at = NOW()
+        WHERE id = $5 AND user_id = $6
+        RETURNING id, reading_date::text, slot, value, notes, created_at, updated_at`,
+      [input.readingDate, input.slot, input.value, input.notes, id, userId]
     );
     await client.query('COMMIT');
     return toReading(result.rows[0]);

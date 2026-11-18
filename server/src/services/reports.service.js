@@ -55,20 +55,18 @@ export async function getReport(userId, type, selectedDate) {
     [userId, range.from, range.to]
   );
 
-  const readingsPromise = type === 'daily'
-    ? pool.query(
-      `SELECT id, reading_date::text AS "readingDate", slot, value
+  const readingsPromise = pool.query(
+      `SELECT id, reading_date::text AS "readingDate", slot, value, COALESCE(notes, '') AS notes
          FROM readings
-        WHERE user_id = $1 AND reading_date = $2
-        ORDER BY CASE slot
+        WHERE user_id = $1 AND reading_date BETWEEN $2 AND $3
+        ORDER BY reading_date, CASE slot
           WHEN 'morning' THEN 1
           WHEN 'after_breakfast' THEN 2
           WHEN 'after_lunch' THEN 3
           WHEN 'after_dinner' THEN 4
         END`,
-      [userId, selectedDate]
-    )
-    : Promise.resolve({ rows: undefined });
+      [userId, range.from, range.to]
+    );
 
   const [summaryResult, readingsResult] = await Promise.all([summaryPromise, readingsPromise]);
   return {
@@ -76,7 +74,7 @@ export async function getReport(userId, type, selectedDate) {
     selectedDate,
     ...range,
     ...toSummary(summaryResult.rows[0]),
-    ...(readingsResult.rows ? { readings: readingsResult.rows } : {})
+    readings: readingsResult.rows
   };
 }
 
