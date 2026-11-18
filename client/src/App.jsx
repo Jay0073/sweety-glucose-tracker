@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { LogOut } from 'lucide-react';
 import { apiRequest } from './api.js';
 import { AuthScreen } from './components/AuthScreen.jsx';
 import { Brand } from './components/Brand.jsx';
+import { Dashboard } from './components/Dashboard.jsx';
 
 const TOKEN_KEY = 'sweety_token';
 
@@ -40,21 +40,6 @@ export default function App() {
 
   if (!session.user) return <AuthScreen onAuthenticated={authenticated} />;
 
-  return (
-    <main className="app-shell">
-      <header className="app-header">
-        <Brand compact />
-        <div className="app-header__user">
-          <span>Hi, {session.user.name.split(' ')[0]}</span>
-          <button className="icon-button" type="button" onClick={logout} aria-label="Log out"><LogOut size={19} /></button>
-        </div>
-      </header>
-      <section className="welcome-card">
-        <p className="eyebrow">Account ready</p>
-        <h1>Your private glucose journal is ready.</h1>
-        <p>Daily readings are coming in the next milestone.</p>
-      </section>
-    </main>
-  );
+  return <Dashboard session={session} onLogout={logout} />;
 }
 
