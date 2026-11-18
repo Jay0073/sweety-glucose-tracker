@@ -12,7 +12,9 @@ The mobile-friendly interface is designed for a short repeated task: the next em
 - Attach an optional note to a reading for useful context such as meals, medicine, exercise, illness, or stress.
 - Enforce value, date, duplicate-slot, and four-per-day rules in the API and database.
 - View daily, month-to-date, and complete previous-month statistics.
-- See highest, lowest, one-decimal average, count, glucose trends, and day-by-day logging consistency.
+- See a compact highest, lowest, one-decimal average, and count summary without decorative status judgments.
+- Compare the daily profile, day-by-day averages, time-slot averages, and logging consistency without mixing unlike readings into one trend.
+- Review a lightweight month-so-far summary directly below the daily check-in workflow.
 - Export the current report as CSV, print or save it as PDF, and export the user's complete history.
 - Use an in-app date picker, edit/delete controls, confirmation dialog, and generated profile avatar on desktop or mobile.
 - Paginate the complete reading history through the API.
@@ -21,9 +23,9 @@ The mobile-friendly interface is designed for a short repeated task: the next em
 
 ## Screenshots
 
-| Fast daily check-in | Daily report | Mobile month-to-date |
+| Fast daily check-in | Month-to-date report | Mobile month-to-date |
 |---|---|---|
-| ![Daily readings dashboard](docs/screenshots/dashboard.png) | ![Daily glucose report](docs/screenshots/reports.png) | ![Mobile month-to-date glucose report](docs/screenshots/mobile-reports.png) |
+| ![Daily readings dashboard](docs/screenshots/dashboard.png) | ![Month-to-date glucose report](docs/screenshots/reports.png) | ![Mobile month-to-date glucose report](docs/screenshots/mobile-reports.png) |
 
 The login and registration experience is shown in [the authentication screenshot](docs/screenshots/login.png).
 
@@ -66,7 +68,7 @@ Email: demo@sweety.local
 Password: Sweety123!
 ```
 
-The seed is repeatable. Running it again replaces only the demo user and recreates the demo readings.
+The seed is repeatable. Running it again replaces only the demo user and recreates deterministic sample history across the current and previous month, including complete days, missed check-ins, varied glucose values, and contextual notes. This gives every report and chart meaningful data immediately.
 
 ## Run locally
 
@@ -123,7 +125,7 @@ Start the Docker database, then run:
 npm test
 ```
 
-The backend tests truncate only `sweety_test`. They cover password hashing, duplicate accounts, all specified reading rules, notes, a full-day edit, cross-user isolation, pagination and export isolation, report calculations, empty reports, and the January-to-December boundary. The frontend tests cover required and range errors, create and edit requests with notes, and rapid report-tab transitions so stale responses cannot blank the screen.
+The backend tests truncate only `sweety_test`. They cover password hashing, duplicate accounts, all specified reading rules, notes, a full-day edit, cross-user isolation, pagination and export isolation, report calculations, empty reports, and the January-to-December boundary. The frontend tests cover required and range errors, create and edit requests with notes, rapid report-tab transitions, direct month-report navigation, daily aggregation, and time-slot averages.
 
 Useful individual commands:
 
