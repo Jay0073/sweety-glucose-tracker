@@ -4,7 +4,7 @@ Sweety is a mobile-friendly blood glucose journal. It helps a patient record fou
 
 ## Demo recording
 
-**Recording:** [Watch the 2–3 minute walkthrough](REPLACE_WITH_RECORDING_LINK)
+**Recording:** [Watch the 2–3 minute walkthrough](https://drive.google.com/file/d/1Gbx_1VfYCi5x9em7spD6_ZV8S-15eUml/view?usp=sharing)
 
 ## Screenshots
 
