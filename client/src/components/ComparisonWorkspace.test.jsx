@@ -41,7 +41,7 @@ beforeEach(() => {
 
 describe('ComparisonWorkspace', () => {
   it('starts with a useful comparison and accepts two custom ranges', async () => {
-    render(<ComparisonWorkspace token="test-token" user={{ name: 'Demo Patient', email: 'demo@sweety.local' }} />);
+    render(<ComparisonWorkspace token="test-token" user={{ name: 'Aarav Mehta', email: 'demo@sweety.local' }} />);
 
     await waitFor(() => expect(apiRequest).toHaveBeenCalledWith(
       '/reports/compare?fromA=2026-11-01&toA=2026-11-19&fromB=2026-10-01&toB=2026-10-19',
@@ -61,7 +61,7 @@ describe('ComparisonWorkspace', () => {
   });
 
   it('explains why identical ranges cannot be compared', async () => {
-    render(<ComparisonWorkspace token="test-token" user={{ name: 'Demo Patient', email: 'demo@sweety.local' }} />);
+    render(<ComparisonWorkspace token="test-token" user={{ name: 'Aarav Mehta', email: 'demo@sweety.local' }} />);
     await screen.findByText(/Compared/);
 
     fireEvent.change(screen.getByLabelText('Period B start date'), { target: { value: '2026-11-01' } });

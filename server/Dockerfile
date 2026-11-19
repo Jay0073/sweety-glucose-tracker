@@ -5,5 +5,5 @@ RUN npm install
 COPY docker ./docker
 COPY src ./src
 EXPOSE 4000
-CMD ["sh", "-c", "node src/db/migrate.js && node src/server.js"]
+CMD ["sh", "-c", "node src/db/seed.js && node src/server.js"]
 

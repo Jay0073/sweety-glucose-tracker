@@ -5,6 +5,7 @@ import { migrate } from './migrate.js';
 
 const DEMO_EMAIL = 'demo@sweety.local';
 const DEMO_PASSWORD = 'Sweety123!';
+const DEMO_NAME = 'Aarav Mehta';
 
 function dateInTimeZone(date = new Date()) {
   const parts = new Intl.DateTimeFormat('en-CA', {
@@ -98,30 +99,46 @@ async function seed() {
 
   try {
     await client.query('BEGIN');
-    await client.query('DELETE FROM users WHERE email = $1', [DEMO_EMAIL]);
-
-    const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 10);
-    const userResult = await client.query(
-      `INSERT INTO users (name, email, password_hash)
-       VALUES ($1, $2, $3)
-       RETURNING id`,
-      ['Demo Patient', DEMO_EMAIL, passwordHash]
+    const existingUser = await client.query(
+      'SELECT id FROM users WHERE email = $1',
+      [DEMO_EMAIL]
     );
 
-    const today = dateInTimeZone();
-    const currentMonthReadings = currentMonthSample(today);
-    const previousMonthReadings = previousMonthSample(today);
+    let created = false;
+    let userId = existingUser.rows[0]?.id;
 
-    for (const [readingDate, slot, value, notes] of [...currentMonthReadings, ...previousMonthReadings]) {
+    if (userId) {
       await client.query(
-        `INSERT INTO readings (user_id, reading_date, slot, value, notes)
-         VALUES ($1, $2, $3, $4, $5)`,
-        [userResult.rows[0].id, readingDate, slot, value, notes]
+        'UPDATE users SET name = $1 WHERE id = $2',
+        [DEMO_NAME, userId]
       );
+    } else {
+      created = true;
+      const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 10);
+      const userResult = await client.query(
+        `INSERT INTO users (name, email, password_hash)
+         VALUES ($1, $2, $3)
+         RETURNING id`,
+        [DEMO_NAME, DEMO_EMAIL, passwordHash]
+      );
+      userId = userResult.rows[0].id;
+
+      const today = dateInTimeZone();
+      const currentMonthReadings = currentMonthSample(today);
+      const previousMonthReadings = previousMonthSample(today);
+
+      for (const [readingDate, slot, value, notes] of [...currentMonthReadings, ...previousMonthReadings]) {
+        await client.query(
+          `INSERT INTO readings (user_id, reading_date, slot, value, notes)
+           VALUES ($1, $2, $3, $4, $5)`,
+          [userId, readingDate, slot, value, notes]
+        );
+      }
     }
 
     await client.query('COMMIT');
-    console.log('Demo data created.');
+    console.log(created ? 'Demo data created.' : 'Demo account already exists; data was preserved.');
+    console.log(`Name: ${DEMO_NAME}`);
     console.log(`Email: ${DEMO_EMAIL}`);
     console.log(`Password: ${DEMO_PASSWORD}`);
   } catch (error) {

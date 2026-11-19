@@ -19,11 +19,11 @@ services:
   server:
     build:
       context: ./server
-    env_file:
-      - .env
     environment:
       DATABASE_URL: postgresql://sweety:sweety@db:5432/sweety
       CLIENT_URL: http://localhost:5173
+      JWT_SECRET: ${JWT_SECRET:-sweety-local-development-secret}
+      APP_TIME_ZONE: ${APP_TIME_ZONE:-Asia/Kolkata}
     ports:
       - "4000:4000"
     depends_on:
