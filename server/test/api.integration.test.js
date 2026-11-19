@@ -255,8 +255,9 @@ describe('reports', () => {
     assert.equal(response.status, 200);
     assert.equal(response.body.report.daysLogged, 2);
     assert.equal(response.body.report.completeDays, 0);
+    const { readings: comparisonReadings, ...comparisonSummary } = response.body.report.comparison;
     assert.deepEqual(
-      response.body.report.comparison,
+      comparisonSummary,
       {
         from: '2025-02-01',
         to: '2025-02-10',
@@ -267,6 +268,10 @@ describe('reports', () => {
         daysLogged: 1,
         completeDays: 0
       }
+    );
+    assert.deepEqual(
+      comparisonReadings.map((reading) => reading.readingDate),
+      ['2025-02-03', '2025-02-03']
     );
     assert.deepEqual(response.body.report.readings.map((reading) => reading.readingDate), ['2025-03-03', '2025-03-04']);
   });

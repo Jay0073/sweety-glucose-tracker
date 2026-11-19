@@ -95,29 +95,35 @@ async function getSummary(userId, range) {
   return toSummary(result.rows[0]);
 }
 
+async function getReadings(userId, range) {
+  const result = await pool.query(
+    `SELECT id, reading_date::text AS "readingDate", slot, value, COALESCE(notes, '') AS notes
+       FROM readings
+      WHERE user_id = $1 AND reading_date BETWEEN $2 AND $3
+      ORDER BY reading_date, CASE slot
+        WHEN 'morning' THEN 1
+        WHEN 'after_breakfast' THEN 2
+        WHEN 'after_lunch' THEN 3
+        WHEN 'after_dinner' THEN 4
+      END`,
+    [userId, range.from, range.to]
+  );
+  return result.rows;
+}
+
 export async function getReport(userId, type, selectedDate) {
   const range = dateRange(type, selectedDate);
   const comparisonRange = previousRange(type, range);
   const summaryPromise = getSummary(userId, range);
   const comparisonPromise = getSummary(userId, comparisonRange);
+  const readingsPromise = getReadings(userId, range);
+  const comparisonReadingsPromise = getReadings(userId, comparisonRange);
 
-  const readingsPromise = pool.query(
-      `SELECT id, reading_date::text AS "readingDate", slot, value, COALESCE(notes, '') AS notes
-         FROM readings
-        WHERE user_id = $1 AND reading_date BETWEEN $2 AND $3
-        ORDER BY reading_date, CASE slot
-          WHEN 'morning' THEN 1
-          WHEN 'after_breakfast' THEN 2
-          WHEN 'after_lunch' THEN 3
-          WHEN 'after_dinner' THEN 4
-        END`,
-      [userId, range.from, range.to]
-    );
-
-  const [summary, comparisonSummary, readingsResult] = await Promise.all([
+  const [summary, comparisonSummary, readings, comparisonReadings] = await Promise.all([
     summaryPromise,
     comparisonPromise,
-    readingsPromise
+    readingsPromise,
+    comparisonReadingsPromise
   ]);
   return {
     type,
@@ -126,9 +132,10 @@ export async function getReport(userId, type, selectedDate) {
     ...summary,
     comparison: {
       ...comparisonRange,
-      ...comparisonSummary
+      ...comparisonSummary,
+      readings: comparisonReadings
     },
-    readings: readingsResult.rows
+    readings
   };
 }
 

@@ -41,6 +41,9 @@ export async function downloadReportWorkbook({ report, typeLabel, user, filename
   const insights = buildReportInsights(report);
   const generatedAt = new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date());
   const comparison = report.comparison;
+  const comparisonInsights = comparison
+    ? buildReportInsights({ ...comparison, readings: comparison.readings ?? [] })
+    : null;
   const summary = [
     [titleCell],
     [],
@@ -69,9 +72,14 @@ export async function downloadReportWorkbook({ report, typeLabel, user, filename
       [],
       [sectionCell('Previous comparable period'), sectionCell('Value')],
       [labelCell('Period'), textCell(`${comparison.from} to ${comparison.to}`)],
+      [labelCell('Highest'), textCell(comparison.highest ?? 'No data')],
+      [labelCell('Lowest'), textCell(comparison.lowest ?? 'No data')],
       [labelCell('Average'), textCell(comparison.average === null ? 'No data' : comparison.average.toFixed(1))],
       [labelCell('Readings'), { value: comparison.count, type: Number }],
-      [labelCell('Days logged'), { value: comparison.daysLogged, type: Number }]
+      [labelCell('Days logged'), textCell(`${comparisonInsights.daysLogged} of ${comparisonInsights.totalDays}`)],
+      [labelCell('Coverage'), textCell(`${comparisonInsights.coverage}%`)],
+      [labelCell('Complete four-reading days'), { value: comparisonInsights.completeDays, type: Number }],
+      [labelCell('Readings per logged day'), textCell(comparisonInsights.readingsPerLoggedDay.toFixed(1))]
     );
   }
 
@@ -86,7 +94,18 @@ export async function downloadReportWorkbook({ report, typeLabel, user, filename
     ])
   ];
 
-  await writeExcelFile([
+  const comparisonReadings = comparison?.readings?.length ? [
+    ['Date', 'Day', 'Time slot', 'Glucose (mg/dl)', 'Notes'].map(headerCell),
+    ...comparison.readings.map((reading) => [
+      textCell(reading.readingDate),
+      textCell(new Intl.DateTimeFormat('en-IN', { weekday: 'long' }).format(new Date(`${reading.readingDate}T12:00:00`))),
+      textCell(SLOT_LABELS[reading.slot] ?? reading.slot),
+      { value: reading.value, type: Number },
+      textCell(reading.notes ?? '')
+    ])
+  ] : null;
+
+  const sheets = [
     {
       data: summary,
       sheet: 'Summary',
@@ -96,9 +115,20 @@ export async function downloadReportWorkbook({ report, typeLabel, user, filename
     },
     {
       data: readings,
-      sheet: 'Readings',
+      sheet: 'Selected readings',
       columns: [{ width: 14 }, { width: 14 }, { width: 24 }, { width: 18 }, { width: 58 }],
       stickyRowsCount: 1
     }
-  ], { fontFamily: 'Aptos', fontSize: 11 }).toFile(filename);
+  ];
+
+  if (comparisonReadings) {
+    sheets.push({
+      data: comparisonReadings,
+      sheet: 'Previous readings',
+      columns: [{ width: 14 }, { width: 14 }, { width: 24 }, { width: 18 }, { width: 58 }],
+      stickyRowsCount: 1
+    });
+  }
+
+  await writeExcelFile(sheets, { fontFamily: 'Aptos', fontSize: 11 }).toFile(filename);
 }
