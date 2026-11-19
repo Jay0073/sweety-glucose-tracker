@@ -24,7 +24,7 @@ Sweety is a mobile-friendly blood glucose journal. It helps a patient record fou
 - Optional notes for meals, medicine, exercise, illness, or other context.
 - Daily, month-to-date, and previous-month reports with averages and trends.
 - A separate comparison workspace for any two days or date ranges.
-- CSV and Excel exports, printable reports, pagination, and responsive layouts.
+- CSV and Excel exports, printable reports, paginated history, and responsive layouts.
 - Backend integration tests and focused React tests.
 
 ## Run the project

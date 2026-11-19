@@ -463,7 +463,7 @@
 .report-logbook > summary > span:last-child { color: var(--muted); font-size: 0.62rem; }
 .report-logbook[open] > summary { border-bottom: 1px solid #e1ebe9; }
 .report-logbook[open] > summary > span:last-child svg { transform: rotate(180deg); }
-.report-logbook__body { max-height: 560px; overflow: auto; }
+.report-logbook__body { overflow: hidden; }
 .report-logbook__header,
 .report-logbook__row { display: grid; align-items: center; padding: 11px clamp(20px, 4vw, 35px); grid-template-columns: 1fr 1.2fr 0.7fr 1.7fr; gap: 16px; }
 .report-logbook__header { position: sticky; top: 0; z-index: 1; color: var(--muted); background: #f5f9f8; font-size: 0.56rem; font-weight: 760; letter-spacing: 0.07em; text-transform: uppercase; }
@@ -479,6 +479,15 @@
 .report-logbook__value { display: flex; align-items: baseline; gap: 4px; }
 .report-logbook__value strong { font-family: 'Newsreader Variable', Georgia, serif; font-size: 1.35rem !important; }
 .report-logbook__row .is-empty { font-style: italic; opacity: 0.72; }
+.report-logbook__pagination { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 15px clamp(20px, 4vw, 35px); border-top: 1px solid #e1ebe9; background: #fbfdfc; }
+.report-logbook__pagination p { margin: 0; color: var(--muted); font-size: 0.62rem; }
+.report-logbook__pagination > div { display: flex; align-items: center; gap: 12px; }
+.report-logbook__pagination button { display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-height: 34px; padding: 7px 11px; border: 1px solid #cfe0dd; border-radius: 10px; color: var(--teal); background: white; font: inherit; font-size: 0.62rem; font-weight: 720; cursor: pointer; }
+.report-logbook__pagination button:hover:not(:disabled) { border-color: #92bdb6; background: #f0f8f6; }
+.report-logbook__pagination button:focus-visible { outline: 3px solid rgba(20, 123, 111, 0.2); outline-offset: 2px; }
+.report-logbook__pagination button:disabled { cursor: not-allowed; opacity: 0.42; }
+.report-logbook__pagination span { color: var(--muted); font-size: 0.62rem; white-space: nowrap; }
+.report-logbook__pagination span strong { color: var(--ink); }
 
 /* Period comparison workspace */
 .comparison-heading { max-width: 760px; margin-bottom: 30px; }
@@ -629,6 +638,8 @@
   .report-logbook__slot { grid-column: 1; }
   .report-logbook__value { grid-column: 2; grid-row: 1 / 3; }
   .report-logbook__row > p:last-child { grid-column: 1 / -1; padding-top: 8px; border-top: 1px dashed #dfe9e7; }
+  .report-logbook__pagination { align-items: stretch; flex-direction: column; }
+  .report-logbook__pagination > div { justify-content: space-between; }
   .comparison-workspace { padding-top: 32px; }
   .comparison-heading h1 { font-size: clamp(3rem, 15vw, 4.15rem); }
   .comparison-builder { padding: 23px 17px; border-radius: 20px; }
