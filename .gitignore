@@ -9,4 +9,5 @@ coverage/
 .idea/
 .vscode/
 dogfood-output/
+graphify-out/
 

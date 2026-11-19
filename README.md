@@ -1,196 +1,108 @@
 # Sweety
 
-Sweety is a small blood glucose journal for diabetes patients. A patient can record up to four readings per day, add context to each check-in, manage previous readings, and review daily, month-to-date, and previous-month reports.
+Sweety is a mobile-friendly blood glucose journal. It helps a patient record four daily check-ins, add useful context, review patterns, and compare any two periods without turning the data into medical advice.
 
-The mobile-friendly interface is designed for a short repeated task: today's form opens on the check-in that matches the current time, the compact day strip allows same-day backfill, and choosing an earlier date exposes all four slots for historical backfill.
+## Demo recording
 
-## Features
-
-- Register and log in with a bcrypt-hashed password and JWT authentication.
-- Keep every reading scoped to its authenticated user.
-- Add, view, edit, and delete readings in four fixed daily slots.
-- Attach an optional note to a reading for useful context such as meals, medicine, exercise, illness, or stress.
-- Enforce value, date, duplicate-slot, and four-per-day rules in the API and database.
-- View daily, month-to-date, and complete previous-month statistics.
-- See a compact highest, lowest, one-decimal average, and count summary without decorative status judgments.
-- Compare any two independently chosen days or date ranges in a dedicated workspace, with quick starts for month-to-date, completed months, and rolling 30-day periods.
-- Compare the daily profile, day-by-day averages, time-slot averages, and logging consistency without mixing unlike readings into one trend.
-- Keep missing dates visible as breaks in the period trend instead of connecting readings across an unlogged day.
-- Review coverage, complete days, reading frequency, the last saved reading, the most-recorded slot, notes, and neutral differences between chosen periods.
-- Open a detailed report logbook containing readings and their context notes.
-- Review a lightweight month-so-far summary directly below the daily check-in workflow.
-- Export raw readings as CSV, export Summary/Readings Excel workbooks (including both comparison periods when applicable), print or save as PDF, and export the user's complete history.
-- Use an in-app date picker, edit/delete controls, confirmation dialog, and generated profile avatar on desktop or mobile.
-- Paginate the complete reading history through the API.
-- Start PostgreSQL, the API, and the client with Docker Compose.
-- Run meaningful backend integration tests plus React form and report-transition tests.
+**Recording:** [Watch the 2–3 minute walkthrough](REPLACE_WITH_RECORDING_LINK)
 
 ## Screenshots
 
-| Fast daily check-in | Month-to-date report | Mobile month-to-date |
-|---|---|---|
-| ![Daily readings dashboard](docs/screenshots/dashboard.png) | ![Month-to-date glucose report](docs/screenshots/reports.png) | ![Mobile month-to-date glucose report](docs/screenshots/mobile-reports.png) |
+| Daily check-in | Reports |
+|---|---|
+| ![Daily reading workflow](docs/screenshots/dashboard.png) | ![Month-to-date report](docs/screenshots/reports.png) |
 
-The login and registration experience is shown in [the authentication screenshot](docs/screenshots/login.png).
+| Custom comparison | Mobile view |
+|---|---|
+| ![Two custom periods compared](docs/screenshots/compare.png) | ![Sweety on a mobile screen](docs/screenshots/mobile-reports.png) |
 
-## Technology
+## What it includes
 
-- React 19 and Vite
-- Recharts, React DayPicker, and `write-excel-file`
-- Node.js and Express 5
-- PostgreSQL with `pg` and parameterized SQL
-- bcrypt and JSON Web Tokens
-- Node test runner, Supertest, Vitest, and React Testing Library
+- Registration and login with bcrypt password hashing and JWT authentication.
+- User-scoped create, edit, and delete operations for four daily reading slots.
+- Clear validation for value, date, duplicate-slot, and four-per-day rules.
+- Optional notes for meals, medicine, exercise, illness, or other context.
+- Daily, month-to-date, and previous-month reports with averages and trends.
+- A separate comparison workspace for any two days or date ranges.
+- CSV and Excel exports, printable reports, pagination, and responsive layouts.
+- Backend integration tests and focused React tests.
 
-The assignment title mentions MERN and PostgreSQL. This implementation follows the email body and uses PostgreSQL while retaining React and Node.js from the MERN stack.
+## Run the project
 
-## Run with Docker
+You only need Docker Desktop with Docker Compose.
 
-Requirements: Docker Desktop with Docker Compose.
+```bash
+docker compose up --build
+```
 
-1. Copy `.env.example` to `.env` and replace `JWT_SECRET` with a long random value.
-2. Start the application:
+Then open [http://localhost:5173](http://localhost:5173).
 
-   ```bash
-   docker compose up --build
-   ```
+The command starts PostgreSQL, creates the schema, adds the demo account and sample readings on the first run, and starts both the API and React client. Existing demo data is preserved on later restarts.
 
-3. In another terminal, create the demo account and readings:
-
-   ```bash
-   docker compose exec server node src/db/seed.js
-   ```
-
-4. Open `http://localhost:5173`.
-
-The API is available at `http://localhost:4000/api`; its health endpoint is `GET /api/health`. PostgreSQL is exposed on host port `5433` to avoid conflicts with an existing local PostgreSQL installation.
-
-Demo credentials:
+Demo login:
 
 ```text
 Email: demo@sweety.local
 Password: Sweety123!
 ```
 
-The seed is repeatable. Running it again replaces only the demo user and recreates deterministic sample history across the current and previous month, including complete days, missed check-ins, varied glucose values, and contextual notes. This gives every report and chart meaningful data immediately.
+No `.env` file is required for the Docker setup. [`.env.example`](.env.example) documents every available variable for local development or deployment. A real deployment should provide its own strong `JWT_SECRET`.
 
-## Run locally
+To stop the app:
 
-Requirements: Node.js 20 or later, npm, and PostgreSQL. The Docker database can be used with the local Node processes.
+```bash
+docker compose down
+```
+
+PostgreSQL data remains in the Docker volume. Use `docker compose down -v` only when you intentionally want a fresh database.
+
+## Run the tests
+
+Requirements: Node.js 20 or later, npm, and the Docker database.
 
 ```bash
 npm install
 docker compose up -d db
-npm run db:migrate
-npm run db:seed
-npm run dev
-```
-
-The server runs at `http://localhost:4000` and the Vite client at `http://localhost:5173`.
-
-## Environment variables
-
-Copy `.env.example` to `.env`. No real secret is committed.
-
-| Variable | Purpose | Example |
-|---|---|---|
-| `PORT` | Express server port | `4000` |
-| `NODE_ENV` | Runtime environment | `development` |
-| `DATABASE_URL` | Main PostgreSQL connection | `postgresql://sweety:sweety@127.0.0.1:5433/sweety` |
-| `TEST_DATABASE_URL` | Isolated test database | `postgresql://sweety:sweety@127.0.0.1:5433/sweety_test` |
-| `JWT_SECRET` | Signs authentication tokens | A long random string |
-| `CLIENT_URL` | Allowed browser origin | `http://localhost:5173` |
-| `APP_TIME_ZONE` | Server date used for future-date validation | `Asia/Kolkata` |
-| `VITE_API_URL` | API base URL exposed to the client | `http://localhost:4000/api` |
-
-## Database setup
-
-The schema is in `server/src/db/schema.sql`. Run:
-
-```bash
-npm run db:migrate
-```
-
-It creates `users` and `readings`, including:
-
-- a foreign key from readings to users with cascade deletion;
-- a check constraint for the four allowed slots;
-- a check constraint for values from 40 through 600;
-- an optional note limited to 500 characters;
-- `UNIQUE (user_id, reading_date, slot)` as the final duplicate-slot safeguard.
-
-Docker creates both `sweety` and `sweety_test` databases the first time its PostgreSQL volume is initialized.
-
-## Tests
-
-Start the Docker database, then run:
-
-```bash
 npm test
 ```
 
-The backend tests truncate only `sweety_test`. They cover password hashing, duplicate accounts, all specified reading rules, notes, a full-day edit, cross-user isolation, pagination and export isolation, report calculations, empty reports, independent comparison ranges, and the January-to-December boundary. The frontend tests cover required and range errors, create and edit requests with notes, rapid report-tab transitions, direct month-report navigation, custom comparison selection, daily aggregation with missing-date gaps, time-aware slot selection, and time-slot averages.
-
-Useful individual commands:
+The server tests use the separate `sweety_test` database. To check the production client bundle, run:
 
 ```bash
-npm run test --workspace server
-npm run test --workspace client
 npm run build
 ```
-
-## API
-
-Except for health, registration, and login, routes require `Authorization: Bearer <token>`.
-
-| Method | Route | Purpose |
-|---|---|---|
-| `GET` | `/api/health` | Service health |
-| `POST` | `/api/auth/register` | Create an account |
-| `POST` | `/api/auth/login` | Log in |
-| `GET` | `/api/auth/me` | Verify a session |
-| `GET` | `/api/readings?date=YYYY-MM-DD` | Read one day |
-| `GET` | `/api/readings?page=1&limit=20` | Paginated history |
-| `GET` | `/api/readings/export` | Complete authenticated-user history |
-| `POST` | `/api/readings` | Add a reading |
-| `PATCH` | `/api/readings/:id` | Edit a reading |
-| `DELETE` | `/api/readings/:id` | Delete a reading |
-| `GET` | `/api/reports/daily?date=YYYY-MM-DD` | Selected-day report |
-| `GET` | `/api/reports/month-to-date?date=YYYY-MM-DD` | First of month through selected date |
-| `GET` | `/api/reports/monthly?date=YYYY-MM-DD` | Complete month before selected date |
-| `GET` | `/api/reports/compare?fromA=...&toA=...&fromB=...&toB=...` | Compare two chosen ranges |
-
-Report responses include `from`, `to`, `highest`, `lowest`, `average`, `count`, logging coverage, complete-day counts, and ordered readings. The comparison endpoint returns that same shape for Period A plus a `comparison` object containing Period B, so charts and exports use one consistent calculation path.
 
 ## Project structure
 
 ```text
-client/src/
-  components/        React screens and focused UI components
-  api.js              Fetch wrapper and API errors
-  readingConfig.js    Shared slot labels and date formatting
-server/src/
-  routes/             API route definitions
-  controllers/        HTTP request and response handling
-  services/           Validation, business rules, and SQL
-  middleware/         JWT authentication
-  db/                 Pool, schema, migration, and seed
-server/test/           API integration tests
+client/src/             React screens, components, charts, and API helpers
+server/src/routes/      Express route definitions
+server/src/controllers/ Request and response handling
+server/src/services/    Validation, business rules, reports, and SQL
+server/src/db/          PostgreSQL schema, migration, and demo seed
+server/test/            API integration tests
+docs/screenshots/       README and submission screenshots
 ```
 
-The server follows `routes → controllers → services → PostgreSQL`. Reading creation and editing use the same field and daily-rule validation.
+The API follows `routes → controllers → services → PostgreSQL`. All SQL uses parameters, and every reading or report query is scoped to the authenticated user.
 
-## Notes and assumptions
+## Main tools
 
-- Passwords must contain at least six characters because the assignment does not state a password rule.
-- Invalid or missing dates use `Please pick a valid date.` and invalid slots use `Please pick a time slot.` These supplement the five messages supplied in the assignment.
-- Future-date validation uses `APP_TIME_ZONE`, defaulting to `Asia/Kolkata`. The browser prevents a future selection, while the API remains authoritative.
-- A report date also cannot be in the future.
-- Notes are optional plain text and are limited to 500 characters. They provide context for later review but are not interpreted as medical advice.
-- For today's date, Sweety suggests Morning before 08:00, After breakfast before 12:00, After lunch before 18:00, and After dinner from 18:00. This is a convenience default rather than a clinical schedule: any missed slot remains available from the day strip, and past dates expose the full backfill form.
-- JWT bearer authentication was chosen because it is easy to inspect and exercise through the UI, curl, or an API client. For a production health application, I would prefer short-lived access tokens delivered through secure, httpOnly cookies with the corresponding CSRF protection.
-- The average is calculated by PostgreSQL and returned as a number; the UI always renders one decimal place.
-- The four-slot database check and unique constraint make more than four valid readings structurally impossible. The service still returns the explicit four-per-day message when the day is full.
-- The consistency calendar measures logging completeness only; it deliberately does not label a glucose value as good or bad.
+- React 19, Vite, Recharts, and React DayPicker
+- Node.js, Express 5, and PostgreSQL
+- bcrypt and JSON Web Tokens
+- Node test runner, Supertest, Vitest, and React Testing Library
+- Docker Compose
 
-With more time, I would add email verification and password recovery, login rate limiting, per-user time zones, versioned migrations, audit history for edited health data, configurable clinical target ranges reviewed by a qualified professional, automated accessibility checks, deployment CI, and production monitoring.
+The assignment title mentions MERN and PostgreSQL. This project follows the assignment body and uses PostgreSQL instead of MongoDB.
+
+## Notes
+
+- Values must be whole numbers from 40 through 600 mg/dl.
+- One reading is allowed per slot per day, with a maximum of four readings.
+- Notes are optional and limited to 500 characters.
+- Future-date validation uses `APP_TIME_ZONE`, which defaults to `Asia/Kolkata`.
+- Missing days stay visible as gaps in charts instead of being silently connected.
+- Comparisons describe the saved data but do not label one period as medically better or worse.
+
+With more time, I would add password recovery, per-user time zones, edit history for health records, configurable clinician-reviewed target ranges, CI, and production monitoring.
