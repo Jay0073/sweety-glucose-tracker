@@ -1,4 +1,5 @@
 import { SLOT_LABELS } from './readingConfig.js';
+import { buildReportInsights } from './reportUtils.js';
 
 function csvCell(value) {
   const text = String(value ?? '');
@@ -6,9 +7,10 @@ function csvCell(value) {
 }
 
 export function downloadReadingsCsv(readings, filename) {
-  const header = ['Date', 'Time slot', 'Glucose (mg/dl)', 'Notes'];
+  const header = ['Date', 'Day', 'Time slot', 'Glucose (mg/dl)', 'Notes'];
   const rows = readings.map((reading) => [
     reading.readingDate,
+    new Intl.DateTimeFormat('en-IN', { weekday: 'long' }).format(new Date(`${reading.readingDate}T12:00:00`)),
     SLOT_LABELS[reading.slot] ?? reading.slot,
     reading.value,
     reading.notes ?? ''
@@ -23,4 +25,80 @@ export function downloadReadingsCsv(readings, filename) {
   link.click();
   link.remove();
   URL.revokeObjectURL(url);
+}
+
+const titleCell = { value: 'Sweety glucose report', fontSize: 20, fontWeight: 'bold', color: '#134943' };
+const sectionCell = (value) => ({ value, fontWeight: 'bold', color: '#0d6b62', backgroundColor: '#d9eeea' });
+const labelCell = (value) => ({ value, fontWeight: 'bold', color: '#617572' });
+const headerCell = (value) => ({ value, fontWeight: 'bold', color: '#ffffff', backgroundColor: '#0d6b62', wrap: true });
+
+function textCell(value) {
+  return { value: String(value ?? ''), wrap: true };
+}
+
+export async function downloadReportWorkbook({ report, typeLabel, user, filename }) {
+  const { default: writeExcelFile } = await import('write-excel-file/browser');
+  const insights = buildReportInsights(report);
+  const generatedAt = new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date());
+  const comparison = report.comparison;
+  const summary = [
+    [titleCell],
+    [],
+    [sectionCell('Patient and report'), sectionCell('Details')],
+    [labelCell('Patient'), textCell(user.name)],
+    [labelCell('Email'), textCell(user.email)],
+    [labelCell('Report type'), textCell(typeLabel)],
+    [labelCell('Reporting period'), textCell(`${report.from} to ${report.to}`)],
+    [labelCell('Generated'), textCell(generatedAt)],
+    [labelCell('Unit'), textCell('mg/dl')],
+    [],
+    [sectionCell('Summary'), sectionCell('Value')],
+    [labelCell('Highest'), textCell(report.highest ?? 'No data')],
+    [labelCell('Lowest'), textCell(report.lowest ?? 'No data')],
+    [labelCell('Average'), textCell(report.average === null ? 'No data' : report.average.toFixed(1))],
+    [labelCell('Readings'), { value: report.count, type: Number }],
+    [labelCell('Days logged'), textCell(`${insights.daysLogged} of ${insights.totalDays}`)],
+    [labelCell('Complete four-reading days'), { value: insights.completeDays, type: Number }],
+    [labelCell('Readings per logged day'), textCell(insights.readingsPerLoggedDay.toFixed(1))],
+    [labelCell('Most recorded slot'), textCell(insights.mostRecorded ? `${insights.mostRecorded.label} (${insights.mostRecordedCount})` : 'No data')],
+    [labelCell('Entries with notes'), { value: insights.notesCount, type: Number }]
+  ];
+
+  if (comparison) {
+    summary.push(
+      [],
+      [sectionCell('Previous comparable period'), sectionCell('Value')],
+      [labelCell('Period'), textCell(`${comparison.from} to ${comparison.to}`)],
+      [labelCell('Average'), textCell(comparison.average === null ? 'No data' : comparison.average.toFixed(1))],
+      [labelCell('Readings'), { value: comparison.count, type: Number }],
+      [labelCell('Days logged'), { value: comparison.daysLogged, type: Number }]
+    );
+  }
+
+  const readings = [
+    ['Date', 'Day', 'Time slot', 'Glucose (mg/dl)', 'Notes'].map(headerCell),
+    ...report.readings.map((reading) => [
+      textCell(reading.readingDate),
+      textCell(new Intl.DateTimeFormat('en-IN', { weekday: 'long' }).format(new Date(`${reading.readingDate}T12:00:00`))),
+      textCell(SLOT_LABELS[reading.slot] ?? reading.slot),
+      { value: reading.value, type: Number },
+      textCell(reading.notes ?? '')
+    ])
+  ];
+
+  await writeExcelFile([
+    {
+      data: summary,
+      sheet: 'Summary',
+      columns: [{ width: 31 }, { width: 48 }],
+      showGridLines: false,
+      stickyRowsCount: 1
+    },
+    {
+      data: readings,
+      sheet: 'Readings',
+      columns: [{ width: 14 }, { width: 14 }, { width: 24 }, { width: 18 }, { width: 58 }],
+      stickyRowsCount: 1
+    }
+  ], { fontFamily: 'Aptos', fontSize: 11 }).toFile(filename);
 }

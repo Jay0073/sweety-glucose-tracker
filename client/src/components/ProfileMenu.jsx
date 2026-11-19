@@ -32,7 +32,7 @@ export function ProfileMenu({ user, onExportAll, onLogout, exporting }) {
         type="button"
         onClick={() => setOpen((current) => !current)}
       >
-        <PixelAvatar size={32} value={user.email} />
+        <PixelAvatar size={28} value={user.email} />
         <span>{user.name.split(' ')[0]}</span>
         <ChevronDown size={15} />
       </button>
@@ -40,7 +40,7 @@ export function ProfileMenu({ user, onExportAll, onLogout, exporting }) {
       {open && (
         <section aria-label="Account" className="profile-popover" role="dialog">
           <div className="profile-popover__identity">
-            <PixelAvatar size={44} value={user.email} />
+            <PixelAvatar size={42} value={user.email} />
             <div><strong>{user.name}</strong><span>{user.email}</span></div>
           </div>
           <div className="profile-popover__actions">

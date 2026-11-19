@@ -7,6 +7,17 @@ export const SLOTS = [
 
 export const SLOT_LABELS = Object.fromEntries(SLOTS.map((slot) => [slot.value, slot.label]));
 
+export function slotForHour(hour = new Date().getHours()) {
+  if (hour < 8) return 'morning';
+  if (hour < 12) return 'after_breakfast';
+  if (hour < 18) return 'after_lunch';
+  return 'after_dinner';
+}
+
+export function slotPosition(slot) {
+  return SLOTS.findIndex((item) => item.value === slot);
+}
+
 export function localToday() {
   const now = new Date();
   const year = now.getFullYear();

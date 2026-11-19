@@ -240,4 +240,34 @@ describe('reports', () => {
       { highest: null, lowest: null, average: null, count: 0 }
     );
   });
+
+  test('adds coverage and the previous comparable period without mixing readings', async () => {
+    const { token } = await register();
+    await addReading(token, '2025-02-03', 'morning', 100);
+    await addReading(token, '2025-02-03', 'after_breakfast', 140);
+    await addReading(token, '2025-03-03', 'morning', 110);
+    await addReading(token, '2025-03-04', 'morning', 120);
+
+    const response = await request(app)
+      .get('/api/reports/month-to-date?date=2025-03-10')
+      .set(authenticated(token));
+
+    assert.equal(response.status, 200);
+    assert.equal(response.body.report.daysLogged, 2);
+    assert.equal(response.body.report.completeDays, 0);
+    assert.deepEqual(
+      response.body.report.comparison,
+      {
+        from: '2025-02-01',
+        to: '2025-02-10',
+        highest: 140,
+        lowest: 100,
+        average: 120,
+        count: 2,
+        daysLogged: 1,
+        completeDays: 0
+      }
+    );
+    assert.deepEqual(response.body.report.readings.map((reading) => reading.readingDate), ['2025-03-03', '2025-03-04']);
+  });
 });

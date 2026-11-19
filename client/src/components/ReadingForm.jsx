@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ArrowRight, Check, NotebookPen, X } from 'lucide-react';
 import { apiRequest } from '../api.js';
 import { SLOTS } from '../readingConfig.js';
+import { SlotMomentIcon } from './SlotMomentIcon.jsx';
 
 export function validateReadingForm({ value, readingDate, slot }, today) {
   if (value === '') return 'Please enter a glucose value.';
@@ -15,13 +16,14 @@ export function validateReadingForm({ value, readingDate, slot }, today) {
   return '';
 }
 
-export function ReadingForm({ date, editing, readings, selectedSlot, token, today, onSaved, onCancel }) {
+export function ReadingForm({ currentSlot, date, editing, readings, selectedSlot, singleSlot = false, token, today, onSaved, onCancel }) {
   const [value, setValue] = useState('');
   const [slot, setSlot] = useState(selectedSlot ?? '');
   const [notes, setNotes] = useState('');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const inputRef = useRef(null);
+  const slotDetails = SLOTS.find((option) => option.value === slot) ?? SLOTS[0];
 
   useEffect(() => {
     setValue(editing ? String(editing.value) : '');
@@ -67,35 +69,42 @@ export function ReadingForm({ date, editing, readings, selectedSlot, token, toda
     <section className="entry-card" aria-labelledby="entry-title">
       <div className="entry-card__heading">
         <div>
-          <p className="eyebrow">{editing ? 'Update check-in' : 'Quick check-in'}</p>
-          <h2 id="entry-title">{editing ? 'Edit this reading' : 'Add a glucose reading'}</h2>
+          <p className="eyebrow">{editing ? 'Update check-in' : singleSlot ? 'Right now' : 'Quick check-in'}</p>
+          <h2 id="entry-title">{editing ? 'Edit this reading' : `Add ${slotDetails.shortLabel.toLowerCase()} reading`}</h2>
         </div>
         {editing && <button className="text-button" type="button" onClick={onCancel}><X size={16} /> Cancel edit</button>}
       </div>
 
       <form onSubmit={submit} noValidate>
-        <fieldset className="slot-picker">
-          <legend>When did you measure?</legend>
-          <div className="slot-picker__options">
-            {SLOTS.map((option) => {
-              const taken = readings.some((reading) => reading.slot === option.value && reading.id !== editing?.id);
-              return (
-                <button
-                  className={slot === option.value ? 'slot-option is-selected' : 'slot-option'}
-                  disabled={taken}
-                  key={option.value}
-                  type="button"
-                  onClick={() => selectSlot(option.value)}
-                  aria-pressed={slot === option.value}
-                >
-                  {slot === option.value && <Check size={15} />}
-                  <span>{option.shortLabel}</span>
-                  {taken && <small>Added</small>}
-                </button>
-              );
-            })}
+        {singleSlot ? (
+          <div className="focused-slot-field">
+            <SlotMomentIcon size={20} slot={slot} />
+            <span><small>When did you measure?</small><strong>{slotDetails.label}</strong><em>{slot === currentSlot ? 'Suggested for the current time' : 'Selected from today’s check-ins'}</em></span>
           </div>
-        </fieldset>
+        ) : (
+          <fieldset className="slot-picker">
+            <legend>When did you measure?</legend>
+            <div className="slot-picker__options">
+              {SLOTS.map((option) => {
+                const taken = readings.some((reading) => reading.slot === option.value && reading.id !== editing?.id);
+                return (
+                  <button
+                    className={slot === option.value ? 'slot-option is-selected' : 'slot-option'}
+                    disabled={taken}
+                    key={option.value}
+                    type="button"
+                    onClick={() => selectSlot(option.value)}
+                    aria-pressed={slot === option.value}
+                  >
+                    {slot === option.value && <Check size={15} />}
+                    <span>{option.shortLabel}</span>
+                    {taken && <small>Added</small>}
+                  </button>
+                );
+              })}
+            </div>
+          </fieldset>
+        )}
 
         <label className="value-field">
           <span>Glucose value</span>
@@ -125,7 +134,7 @@ export function ReadingForm({ date, editing, readings, selectedSlot, token, toda
             name="notes"
             onChange={(event) => setNotes(event.target.value)}
             placeholder="Meal, medicine, activity, stress, illness, or anything that adds context…"
-            rows={3}
+            rows={2}
             value={notes}
           />
           <small>{notes.length}/500 characters</small>

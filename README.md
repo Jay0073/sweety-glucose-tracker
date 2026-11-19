@@ -2,7 +2,7 @@
 
 Sweety is a small blood glucose journal for diabetes patients. A patient can record up to four readings per day, add context to each check-in, manage previous readings, and review daily, month-to-date, and previous-month reports.
 
-The mobile-friendly interface is designed for a short repeated task: the next empty time slot is selected automatically, the value field is prominent, and a completed slot can be opened directly for editing.
+The mobile-friendly interface is designed for a short repeated task: today's form opens on the check-in that matches the current time, the compact day strip allows same-day backfill, and choosing an earlier date exposes all four slots for historical backfill.
 
 ## Features
 
@@ -14,8 +14,11 @@ The mobile-friendly interface is designed for a short repeated task: the next em
 - View daily, month-to-date, and complete previous-month statistics.
 - See a compact highest, lowest, one-decimal average, and count summary without decorative status judgments.
 - Compare the daily profile, day-by-day averages, time-slot averages, and logging consistency without mixing unlike readings into one trend.
+- Keep missing dates visible as breaks in the period trend instead of connecting readings across an unlogged day.
+- Review coverage, complete days, reading frequency, the last saved reading, the most-recorded slot, notes, and a neutral previous-period comparison.
+- Open a detailed report logbook containing readings and their context notes.
 - Review a lightweight month-so-far summary directly below the daily check-in workflow.
-- Export the current report as CSV, print or save it as PDF, and export the user's complete history.
+- Export raw readings as CSV, export a two-sheet Summary/Readings Excel workbook, print or save as PDF, and export the user's complete history.
 - Use an in-app date picker, edit/delete controls, confirmation dialog, and generated profile avatar on desktop or mobile.
 - Paginate the complete reading history through the API.
 - Start PostgreSQL, the API, and the client with Docker Compose.
@@ -32,7 +35,7 @@ The login and registration experience is shown in [the authentication screenshot
 ## Technology
 
 - React 19 and Vite
-- Recharts and React DayPicker
+- Recharts, React DayPicker, and `write-excel-file`
 - Node.js and Express 5
 - PostgreSQL with `pg` and parameterized SQL
 - bcrypt and JSON Web Tokens
@@ -125,7 +128,7 @@ Start the Docker database, then run:
 npm test
 ```
 
-The backend tests truncate only `sweety_test`. They cover password hashing, duplicate accounts, all specified reading rules, notes, a full-day edit, cross-user isolation, pagination and export isolation, report calculations, empty reports, and the January-to-December boundary. The frontend tests cover required and range errors, create and edit requests with notes, rapid report-tab transitions, direct month-report navigation, daily aggregation, and time-slot averages.
+The backend tests truncate only `sweety_test`. They cover password hashing, duplicate accounts, all specified reading rules, notes, a full-day edit, cross-user isolation, pagination and export isolation, report calculations, empty reports, previous-period isolation, and the January-to-December boundary. The frontend tests cover required and range errors, create and edit requests with notes, rapid report-tab transitions, direct month-report navigation, daily aggregation with missing-date gaps, time-aware slot selection, and time-slot averages.
 
 Useful individual commands:
 
@@ -155,7 +158,7 @@ Except for health, registration, and login, routes require `Authorization: Beare
 | `GET` | `/api/reports/month-to-date?date=YYYY-MM-DD` | First of month through selected date |
 | `GET` | `/api/reports/monthly?date=YYYY-MM-DD` | Complete month before selected date |
 
-Report responses include `from`, `to`, `highest`, `lowest`, `average`, `count`, and the ordered readings for that range. The client uses the same response to render statistics, a trend chart, a consistency calendar, and exports without duplicating report calculations.
+Report responses include `from`, `to`, `highest`, `lowest`, `average`, `count`, logging coverage, complete-day counts, the ordered readings, and a summary for the previous comparable period. The client uses the same response to render statistics, charts, consistency, comparison, and exports without duplicating report calculations.
 
 ## Project structure
 
@@ -182,6 +185,7 @@ The server follows `routes → controllers → services → PostgreSQL`. Reading
 - Future-date validation uses `APP_TIME_ZONE`, defaulting to `Asia/Kolkata`. The browser prevents a future selection, while the API remains authoritative.
 - A report date also cannot be in the future.
 - Notes are optional plain text and are limited to 500 characters. They provide context for later review but are not interpreted as medical advice.
+- For today's date, Sweety suggests Morning before 08:00, After breakfast before 12:00, After lunch before 18:00, and After dinner from 18:00. This is a convenience default rather than a clinical schedule: any missed slot remains available from the day strip, and past dates expose the full backfill form.
 - JWT bearer authentication was chosen because it is easy to inspect and exercise through the UI, curl, or an API client. For a production health application, I would prefer short-lived access tokens delivered through secure, httpOnly cookies with the corresponding CSRF protection.
 - The average is calculated by PostgreSQL and returned as a number; the UI always renders one decimal place.
 - The four-slot database check and unique constraint make more than four valid readings structurally impossible. The service still returns the explicit four-per-day message when the day is full.
