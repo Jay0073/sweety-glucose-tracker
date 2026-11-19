@@ -50,14 +50,14 @@ export function ReadingForm({ currentSlot, date, editing, readings, selectedSlot
     setError('');
     try {
       const path = editing ? `/readings/${editing.id}` : '/readings';
-      await apiRequest(path, {
+      const result = await apiRequest(path, {
         method: editing ? 'PATCH' : 'POST',
         token,
         body: { readingDate: date, slot, value: Number(value), notes }
       });
       setValue('');
       setNotes('');
-      await onSaved(editing ? 'Reading updated.' : 'Reading saved.');
+      await onSaved(editing ? 'Reading updated.' : 'Reading saved.', result.reading);
     } catch (saveError) {
       setError(saveError.message);
     } finally {

@@ -377,9 +377,11 @@
 .moment-card__value strong { font-family: 'Newsreader Variable', Georgia, serif; font-size: 2.6rem; font-weight: 590; letter-spacing: -0.05em; line-height: 0.9; }
 .moment-card__value span { color: var(--muted); font-size: 0.58rem; }
 .moment-card__add { display: inline-flex; min-height: 42px; align-items: center; gap: 7px; padding: 0 13px; border: 0; border-radius: 11px; color: white; background: var(--teal); font-size: 0.68rem; font-weight: 800; white-space: nowrap; }
-.moment-card__actions { position: relative; z-index: 1; display: flex; justify-content: flex-end; gap: 7px; margin-top: 9px; }
+.moment-card__actions { position: relative; z-index: 1; display: flex; min-height: 35px; align-items: center; justify-content: flex-end; gap: 7px; margin-top: 9px; }
 .moment-card__actions button { display: inline-flex; min-height: 35px; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid var(--line); border-radius: 10px; color: var(--muted); background: white; font-size: 0.62rem; font-weight: 760; }
 .moment-card__actions button:last-child:hover { border-color: #efb9c8; color: var(--berry); background: var(--berry-soft); }
+.moment-card__actions.is-guidance { justify-content: flex-start; }
+.moment-card__actions.is-guidance span { color: var(--muted); font-size: 0.59rem; }
 
 .day-strip { position: relative; z-index: 1; display: grid; margin-top: 18px; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 7px; }
 .day-strip__item { position: relative; display: grid; min-width: 0; min-height: 92px; align-content: center; justify-items: start; padding: 10px; border: 1px solid #dfe9e7; border-radius: 14px; color: var(--muted); background: rgba(255, 255, 255, 0.68); text-align: left; }

@@ -51,12 +51,16 @@ export function DailyCheckins({
         )}
       </div>
 
-      {focusedReading && (
-        <div className="moment-card__actions">
-          <button type="button" onClick={() => onSelect(focusedSlot, focusedReading)}><Pencil size={16} /> Edit reading</button>
-          <button disabled={deletingId === focusedReading.id} type="button" onClick={() => onDelete(focusedReading)}><Trash2 size={16} /> Delete</button>
-        </div>
-      )}
+      <div className={`moment-card__actions ${focusedReading ? '' : 'is-guidance'}`}>
+        {focusedReading ? (
+          <>
+            <button type="button" onClick={() => onSelect(focusedSlot, focusedReading)}><Pencil size={16} /> Edit reading</button>
+            <button disabled={deletingId === focusedReading.id} type="button" onClick={() => onDelete(focusedReading)}><Trash2 size={16} /> Delete</button>
+          </>
+        ) : (
+          <span>{isToday ? 'Use the form to save this check-in.' : 'Use the form to backfill this check-in.'}</span>
+        )}
+      </div>
 
       <div className="day-strip" aria-label="Four daily check-ins">
         {SLOTS.map((slot) => {

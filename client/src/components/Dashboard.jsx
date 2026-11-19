@@ -41,7 +41,7 @@ export function Dashboard({ session, onLogout }) {
 
   useEffect(() => () => window.clearTimeout(noticeTimeoutRef.current), []);
 
-  const loadReadings = useCallback(async () => {
+  const loadReadings = useCallback(async (focusedReading = null) => {
     const requestId = requestRef.current + 1;
     requestRef.current = requestId;
     setLoading(true);
@@ -50,6 +50,14 @@ export function Dashboard({ session, onLogout }) {
       const result = await apiRequest(`/readings?date=${date}`, { token: session.token });
       if (requestId !== requestRef.current) return;
       setReadings(result.data);
+      const refreshedFocus = focusedReading
+        ? result.data.find((reading) => reading.id === focusedReading.id)
+        : null;
+      if (refreshedFocus) {
+        setEditing(refreshedFocus);
+        setSelectedSlot(refreshedFocus.slot);
+        return;
+      }
       const nextSlot = date === today
         ? currentSlot
         : SLOTS.find((slot) => !result.data.some((reading) => reading.slot === slot.value))?.value ?? SLOTS[0].value;
@@ -78,9 +86,10 @@ export function Dashboard({ session, onLogout }) {
     bringFormIntoView();
   }
 
-  async function readingSaved(message) {
-    setEditing(null);
-    await loadReadings();
+  async function readingSaved(message, savedReading) {
+    setEditing(savedReading);
+    setSelectedSlot(savedReading.slot);
+    await loadReadings(savedReading);
     setReportRevision((current) => current + 1);
     showNotice(message);
   }
@@ -131,7 +140,7 @@ export function Dashboard({ session, onLogout }) {
 
   const firstName = session.user.name.split(' ')[0];
   const selectedReading = readings.find((reading) => reading.slot === selectedSlot);
-  const showForm = !loading && Boolean(editing || (readings.length < 4 && !selectedReading));
+  const showForm = Boolean(editing || (!loading && readings.length < 4 && !selectedReading));
 
   return (
     <main className="dashboard-shell">

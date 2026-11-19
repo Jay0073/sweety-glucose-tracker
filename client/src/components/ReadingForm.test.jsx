@@ -61,7 +61,7 @@ describe('ReadingForm', () => {
       token: 'test-token',
       body: { readingDate: '2025-01-15', slot: 'after_lunch', value: 128, notes: 'Walked after lunch.' }
     }));
-    expect(baseProps.onSaved).toHaveBeenCalledOnce();
+    expect(baseProps.onSaved).toHaveBeenCalledWith('Reading saved.', { id: 1 });
   });
 
   it('updates an existing reading through the same form', async () => {
