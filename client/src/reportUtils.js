@@ -1,7 +1,17 @@
-import { SLOTS } from './readingConfig.js';
+import { formatDisplayDate, SLOTS } from './readingConfig.js';
 
 export function daysInRange(from, to) {
   return Math.round((new Date(`${to}T12:00:00Z`) - new Date(`${from}T12:00:00Z`)) / 86400000) + 1;
+}
+
+export function formatReportRange(from, to) {
+  if (from === to) return formatDisplayDate(from);
+  const start = new Date(`${from}T12:00:00`);
+  const end = new Date(`${to}T12:00:00`);
+  if (start.getFullYear() === end.getFullYear() && start.getMonth() === end.getMonth()) {
+    return `${start.getDate()}–${new Intl.DateTimeFormat('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }).format(end)}`;
+  }
+  return `${formatDisplayDate(from)} – ${formatDisplayDate(to)}`;
 }
 
 export function buildReportInsights(report) {

@@ -36,7 +36,18 @@ function textCell(value) {
   return { value: String(value ?? ''), wrap: true };
 }
 
-export async function downloadReportWorkbook({ report, typeLabel, user, filename }) {
+function readingsSheetName(label) {
+  return `${label} readings`.slice(0, 31);
+}
+
+export async function downloadReportWorkbook({
+  report,
+  typeLabel,
+  user,
+  filename,
+  currentLabel = 'Selected period',
+  comparisonLabel = 'Previous comparable period'
+}) {
   const { default: writeExcelFile } = await import('write-excel-file/browser');
   const insights = buildReportInsights(report);
   const generatedAt = new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date());
@@ -51,7 +62,7 @@ export async function downloadReportWorkbook({ report, typeLabel, user, filename
     [labelCell('Patient'), textCell(user.name)],
     [labelCell('Email'), textCell(user.email)],
     [labelCell('Report type'), textCell(typeLabel)],
-    [labelCell('Reporting period'), textCell(`${report.from} to ${report.to}`)],
+    [labelCell(currentLabel), textCell(`${report.from} to ${report.to}`)],
     [labelCell('Generated'), textCell(generatedAt)],
     [labelCell('Unit'), textCell('mg/dl')],
     [],
@@ -70,7 +81,7 @@ export async function downloadReportWorkbook({ report, typeLabel, user, filename
   if (comparison) {
     summary.push(
       [],
-      [sectionCell('Previous comparable period'), sectionCell('Value')],
+      [sectionCell(comparisonLabel), sectionCell('Value')],
       [labelCell('Period'), textCell(`${comparison.from} to ${comparison.to}`)],
       [labelCell('Highest'), textCell(comparison.highest ?? 'No data')],
       [labelCell('Lowest'), textCell(comparison.lowest ?? 'No data')],
@@ -115,7 +126,7 @@ export async function downloadReportWorkbook({ report, typeLabel, user, filename
     },
     {
       data: readings,
-      sheet: 'Selected readings',
+      sheet: readingsSheetName(currentLabel),
       columns: [{ width: 14 }, { width: 14 }, { width: 24 }, { width: 18 }, { width: 58 }],
       stickyRowsCount: 1
     }
@@ -124,7 +135,7 @@ export async function downloadReportWorkbook({ report, typeLabel, user, filename
   if (comparisonReadings) {
     sheets.push({
       data: comparisonReadings,
-      sheet: 'Previous readings',
+      sheet: readingsSheetName(comparisonLabel),
       columns: [{ width: 14 }, { width: 14 }, { width: 24 }, { width: 18 }, { width: 58 }],
       stickyRowsCount: 1
     });

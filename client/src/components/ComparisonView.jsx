@@ -1,17 +1,11 @@
 import { Bar, BarChart, CartesianGrid, Line, LineChart, Tooltip, XAxis, YAxis } from 'recharts';
-import { SLOTS } from '../readingConfig.js';
-import { buildReportInsights } from '../reportUtils.js';
+import { formatDisplayDate, SLOTS } from '../readingConfig.js';
+import { buildReportInsights, daysInRange, formatReportRange } from '../reportUtils.js';
 import { aggregateDailyReadings } from './GlucoseTrend.jsx';
 import { buildSlotAverages } from './SlotAverages.jsx';
 
 const CURRENT_COLOR = '#0d6b62';
 const PREVIOUS_COLOR = '#6872a0';
-
-const COMPARE_COPY = {
-  daily: 'The same four check-ins, one day apart.',
-  'month-to-date': 'The same number of calendar days, one month apart.',
-  monthly: 'Two complete months, side by side.'
-};
 
 function averageByDate(readings, from, to) {
   return aggregateDailyReadings(readings, from, to);
@@ -66,8 +60,8 @@ function ComparisonTooltip({ active, payload }) {
   return (
     <div className="chart-tooltip comparison-tooltip">
       <strong>{row.label}</strong>
-      <p><i className="is-current" />Selected period <b>{Number.isFinite(row.current) ? `${row.current.toFixed(1)} mg/dl` : 'No reading'}</b></p>
-      <p><i className="is-previous" />Previous period <b>{Number.isFinite(row.previous) ? `${row.previous.toFixed(1)} mg/dl` : 'No reading'}</b></p>
+      <p><i className="is-current" /><span>Period A<small>{row.currentDate ? formatDisplayDate(row.currentDate) : 'Outside range'}</small></span><b>{Number.isFinite(row.current) ? `${row.current.toFixed(1)} mg/dl` : 'No reading'}</b></p>
+      <p><i className="is-previous" /><span>Period B<small>{row.previousDate ? formatDisplayDate(row.previousDate) : 'Outside range'}</small></span><b>{Number.isFinite(row.previous) ? `${row.previous.toFixed(1)} mg/dl` : 'No reading'}</b></p>
     </div>
   );
 }
@@ -82,11 +76,11 @@ function ComparisonTrend({ report, type }) {
     <section className="comparison-chart-card" aria-labelledby="comparison-trend-title">
       <div className="section-heading">
         <div><p className="eyebrow">Pattern comparison</p><h2 id="comparison-trend-title">{type === 'daily' ? 'Check-in by check-in' : 'Day by day'}</h2></div>
-        <div className="comparison-legend" aria-label="Chart legend"><span><i className="is-current" />Selected</span><span><i className="is-previous" />Previous</span></div>
+        <div className="comparison-legend" aria-label="Chart legend"><span><i className="is-current" />Period A</span><span><i className="is-previous" />Period B</span></div>
       </div>
       <p className="comparison-card-intro">{type === 'daily'
         ? 'Each position represents the same time-of-day check-in.'
-        : 'Days align by calendar position. Missing readings remain visible as breaks in either line.'}</p>
+        : 'Days align by position within each period. Missing readings remain visible as breaks in either line.'}</p>
       <div className="comparison-trend-chart" role="img" aria-label="Selected and previous period glucose comparison">
         <LineChart data={data} margin={{ top: 12, right: 15, bottom: 8, left: -8 }} responsive style={{ width: '100%', height: '100%' }}>
           <CartesianGrid stroke="#dce8e5" strokeDasharray="3 6" vertical={false} />
@@ -107,8 +101,8 @@ function SlotComparisonTooltip({ active, payload }) {
   return (
     <div className="chart-tooltip comparison-tooltip">
       <strong>{row.fullLabel}</strong>
-      <p><i className="is-current" />Selected period <b>{formatValue(row.current, 'average')}</b></p>
-      <p><i className="is-previous" />Previous period <b>{formatValue(row.previous, 'average')}</b></p>
+      <p><i className="is-current" />Period A <b>{formatValue(row.current, 'average')}</b></p>
+      <p><i className="is-previous" />Period B <b>{formatValue(row.previous, 'average')}</b></p>
     </div>
   );
 }
@@ -127,7 +121,7 @@ function SlotComparison({ report }) {
     <section className="comparison-chart-card" aria-labelledby="comparison-slots-title">
       <div className="section-heading">
         <div><p className="eyebrow">Time-of-day comparison</p><h2 id="comparison-slots-title">The same check-ins across both periods</h2></div>
-        <div className="comparison-legend" aria-label="Chart legend"><span><i className="is-current" />Selected</span><span><i className="is-previous" />Previous</span></div>
+        <div className="comparison-legend" aria-label="Chart legend"><span><i className="is-current" />Period A</span><span><i className="is-previous" />Period B</span></div>
       </div>
       <p className="comparison-card-intro">Each pair uses the average of only the readings saved for that check-in.</p>
       <div className="comparison-slot-chart" role="img" aria-label="Time-of-day averages for selected and previous periods">
@@ -136,18 +130,21 @@ function SlotComparison({ report }) {
           <XAxis axisLine={false} dataKey="label" tick={{ fill: '#617572', fontSize: 11 }} tickLine={false} />
           <YAxis axisLine={false} tick={{ fill: '#617572', fontSize: 11 }} tickLine={false} width={48} />
           <Tooltip content={<SlotComparisonTooltip />} cursor={{ fill: '#edf6f4' }} />
-          <Bar dataKey="current" fill={CURRENT_COLOR} maxBarSize={34} radius={[7, 7, 2, 2]} />
-          <Bar dataKey="previous" fill={PREVIOUS_COLOR} maxBarSize={34} radius={[7, 7, 2, 2]} />
+          <Bar dataKey="current" fill={CURRENT_COLOR} isAnimationActive={false} maxBarSize={34} radius={[7, 7, 2, 2]} />
+          <Bar dataKey="previous" fill={PREVIOUS_COLOR} isAnimationActive={false} maxBarSize={34} radius={[7, 7, 2, 2]} />
         </BarChart>
       </div>
     </section>
   );
 }
 
-export function ComparisonView({ formatRange, report, type }) {
+export function ComparisonView({ report }) {
   const currentInsights = buildReportInsights(report);
   const previousReport = { ...report.comparison, readings: report.comparison.readings ?? [] };
   const previousInsights = buildReportInsights(previousReport);
+  const currentDuration = daysInRange(report.from, report.to);
+  const previousDuration = daysInRange(report.comparison.from, report.comparison.to);
+  const isDaily = currentDuration === 1 && previousDuration === 1;
   const metrics = [
     { label: 'Average glucose', kind: 'average', current: report.average, previous: report.comparison.average },
     { label: 'Highest reading', kind: 'glucose', current: report.highest, previous: report.comparison.highest },
@@ -164,40 +161,40 @@ export function ComparisonView({ formatRange, report, type }) {
   return (
     <div className="comparison-view">
       <section className="comparison-periods" aria-labelledby="comparison-periods-title">
-        <div className="comparison-periods__heading"><p className="eyebrow">Comparable periods</p><h2 id="comparison-periods-title">{COMPARE_COPY[type]}</h2></div>
+        <div className="comparison-periods__heading"><p className="eyebrow">Chosen periods</p><h2 id="comparison-periods-title">{isDaily ? 'Daily check-ins, side by side.' : `${currentDuration}-day period beside ${previousDuration}-day period.`}</h2></div>
         <div className="comparison-period-pair">
-          <article className="is-current"><span>A</span><div><small>Selected period</small><strong>{formatRange(report.from, report.to)}</strong></div></article>
+          <article className="is-current"><span>A</span><div><small>Period A</small><strong>{formatReportRange(report.from, report.to)}</strong></div></article>
           <b aria-hidden="true">vs</b>
-          <article className="is-previous"><span>B</span><div><small>Previous comparable period</small><strong>{formatRange(report.comparison.from, report.comparison.to)}</strong></div></article>
+          <article className="is-previous"><span>B</span><div><small>Period B</small><strong>{formatReportRange(report.comparison.from, report.comparison.to)}</strong></div></article>
         </div>
       </section>
 
       <section className="comparison-ledger" aria-labelledby="comparison-snapshot-title">
         <div className="section-heading"><div><p className="eyebrow">Side-by-side snapshot</p><h2 id="comparison-snapshot-title">What changed between the periods</h2></div><span>Descriptive only</span></div>
-        <div className="comparison-ledger__header" aria-hidden="true"><span>Measure</span><span>Selected</span><span>Previous</span><span>Difference</span></div>
+        <div className="comparison-ledger__header" aria-hidden="true"><span>Measure</span><span>Period A</span><span>Period B</span><span>Difference</span></div>
         <dl>
           {metrics.map((metric) => (
             <div key={metric.label}>
               <dt>{metric.label}</dt>
-              <dd><small>Selected</small>{formatValue(metric.current, metric.kind)}</dd>
-              <dd><small>Previous</small>{formatValue(metric.previous, metric.kind)}</dd>
+              <dd><small>Period A</small>{formatValue(metric.current, metric.kind)}</dd>
+              <dd><small>Period B</small>{formatValue(metric.previous, metric.kind)}</dd>
               <dd><small>Difference</small>{formatDifference(metric.current, metric.previous, metric.kind)}</dd>
             </div>
           ))}
         </dl>
       </section>
 
-      <ComparisonTrend report={report} type={type} />
+      <ComparisonTrend report={report} type={isDaily ? 'daily' : 'range'} />
 
       <section className="comparison-logging" aria-labelledby="comparison-logging-title">
         <div className="section-heading"><div><p className="eyebrow">Logging consistency</p><h2 id="comparison-logging-title">How much context each period contains</h2></div></div>
-        <div className="comparison-logging__header" aria-hidden="true"><span>Measure</span><span>Selected</span><span>Previous</span><span>Difference</span></div>
+        <div className="comparison-logging__header" aria-hidden="true"><span>Measure</span><span>Period A</span><span>Period B</span><span>Difference</span></div>
         <dl>
           {loggingMetrics.map((metric) => (
             <div key={metric.label}>
               <dt>{metric.label}</dt>
-              <dd><small>Selected</small>{formatValue(metric.current, metric.kind)}</dd>
-              <dd><small>Previous</small>{formatValue(metric.previous, metric.kind)}</dd>
+              <dd><small>Period A</small>{formatValue(metric.current, metric.kind)}</dd>
+              <dd><small>Period B</small>{formatValue(metric.previous, metric.kind)}</dd>
               <dd><small>Difference</small>{formatDifference(metric.current, metric.previous, metric.kind)}</dd>
             </div>
           ))}

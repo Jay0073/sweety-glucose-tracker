@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Activity, ChevronDown, Columns2, Download, FileSpreadsheet, LayoutDashboard, Printer } from 'lucide-react';
+import { Activity, ChevronDown, Download, FileSpreadsheet, Printer } from 'lucide-react';
 import { apiRequest } from '../api.js';
 import { downloadReadingsCsv, downloadReportWorkbook } from '../exportUtils.js';
 import { formatDisplayDate, localToday, SLOT_LABELS } from '../readingConfig.js';
-import { buildReportInsights } from '../reportUtils.js';
-import { ComparisonView } from './ComparisonView.jsx';
+import { buildReportInsights, formatReportRange } from '../reportUtils.js';
 import { ConsistencyCalendar } from './ConsistencyCalendar.jsx';
 import { DateNavigator } from './DateNavigator.jsx';
 import { GlucoseTrend } from './GlucoseTrend.jsx';
@@ -25,20 +24,9 @@ const REPORT_COPY = {
   monthly: 'Review the complete previous month and its logging rhythm.'
 };
 
-function formatRange(from, to) {
-  if (from === to) return formatDisplayDate(from);
-  const start = new Date(`${from}T12:00:00`);
-  const end = new Date(`${to}T12:00:00`);
-  if (start.getFullYear() === end.getFullYear() && start.getMonth() === end.getMonth()) {
-    return `${start.getDate()}–${new Intl.DateTimeFormat('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }).format(end)}`;
-  }
-  return `${formatDisplayDate(from)} – ${formatDisplayDate(to)}`;
-}
-
 export function Reports({ initialType = 'daily', token, selectedDate, user = { name: 'Patient', email: '' }, onDateChange }) {
   const today = useMemo(localToday, []);
   const [type, setType] = useState(initialType);
-  const [viewMode, setViewMode] = useState('overview');
   const requestKey = `${type}:${selectedDate}`;
   const [resource, setResource] = useState({ key: '', status: 'loading', report: null, error: '' });
   const isCurrent = resource.key === requestKey;
@@ -114,7 +102,7 @@ export function Reports({ initialType = 'daily', token, selectedDate, user = { n
         <div>
           <p className="eyebrow">Reports</p>
           <h1>Your glucose,<br /> over time.</h1>
-          <p>{viewMode === 'compare' ? 'Place this period beside the previous comparable one.' : REPORT_COPY[type]}</p>
+          <p>{REPORT_COPY[type]}</p>
         </div>
         <DateNavigator label="Report date" max={today} step={type === 'daily' ? 'day' : 'month'} value={selectedDate} onChange={onDateChange} />
       </section>
@@ -128,10 +116,6 @@ export function Reports({ initialType = 'daily', token, selectedDate, user = { n
           ))}
         </div>
         <div className="report-actions">
-          <div className="report-mode-switch" role="tablist" aria-label="Report view">
-            <button aria-selected={viewMode === 'overview'} className={viewMode === 'overview' ? 'is-active' : ''} role="tab" type="button" onClick={() => setViewMode('overview')}><LayoutDashboard size={16} /><span>Overview</span></button>
-            <button aria-selected={viewMode === 'compare'} className={viewMode === 'compare' ? 'is-active' : ''} role="tab" type="button" onClick={() => setViewMode('compare')}><Columns2 size={16} /><span>Compare</span></button>
-          </div>
           <div className="export-menu" ref={exportRef}>
             <button aria-expanded={exportOpen} aria-haspopup="menu" disabled={!report?.readings?.length} type="button" onClick={() => setExportOpen((open) => !open)}><Download size={17} /><span>Export</span><ChevronDown size={15} /></button>
             {exportOpen && (
@@ -153,74 +137,68 @@ export function Reports({ initialType = 'daily', token, selectedDate, user = { n
           <section className="report-identity" aria-label="Patient and report details">
             <div className="report-identity__patient"><PixelAvatar size={42} value={user.email} /><span><small>Prepared for</small><strong>{user.name}</strong><em>{user.email}</em></span></div>
             <dl>
-              <div><dt>Period</dt><dd>{formatRange(report.from, report.to)}</dd></div>
+              <div><dt>Period</dt><dd>{formatReportRange(report.from, report.to)}</dd></div>
               <div><dt>Generated</dt><dd>{generatedAt}</dd></div>
               <div><dt>Unit</dt><dd>mg/dl</dd></div>
             </dl>
           </section>
 
-          {viewMode === 'compare' ? (
-            <ComparisonView formatRange={formatRange} report={report} type={type} />
-          ) : (
+          <section className="report-summary" aria-labelledby="report-range-title">
+            <div className="report-summary__heading">
+              <div><p className="eyebrow">Reporting period</p><h2 id="report-range-title">{formatReportRange(report.from, report.to)}</h2></div>
+              <span>{report.count === 1 ? '1 reading' : `${report.count} readings`}</span>
+            </div>
+
+            {report.count === 0 ? (
+              <div className="report-empty"><span><Activity size={25} /></span><div><strong>No readings in this period</strong><p>Add readings for this range and return here to see a summary and trend.</p></div></div>
+            ) : (
+              <dl className="report-stat-list">
+                <div><dt>Average glucose</dt><dd>{report.average.toFixed(1)} <span>mg/dl</span></dd></div>
+                <div><dt>Highest</dt><dd>{report.highest} <span>mg/dl</span></dd></div>
+                <div><dt>Lowest</dt><dd>{report.lowest} <span>mg/dl</span></dd></div>
+                <div><dt>Readings</dt><dd>{report.count}</dd></div>
+              </dl>
+            )}
+          </section>
+
+          {report.count > 0 && insights && (
+            <section className="report-insights" aria-labelledby="report-insights-title">
+              <div className="section-heading"><div><p className="eyebrow">Coverage and context</p><h2 id="report-insights-title">What is behind the average</h2></div><span>{insights.coverage}% of days logged</span></div>
+              <dl>
+                <div><dt>Days with data</dt><dd>{insights.daysLogged}<small>of {insights.totalDays} days</small></dd></div>
+                <div><dt>Readings / logged day</dt><dd>{insights.readingsPerLoggedDay.toFixed(1)}<small>average frequency</small></dd></div>
+                <div><dt>Complete days</dt><dd>{insights.completeDays}<small>all four slots saved</small></dd></div>
+                <div><dt>Most recorded slot</dt><dd>{insights.mostRecorded.shortLabel}<small>{insights.mostRecordedCount} entries</small></dd></div>
+                <div><dt>Context notes</dt><dd>{insights.notesCount}<small>entries explained</small></dd></div>
+                <div><dt>Last saved</dt><dd>{insights.latest.value}<small>{SLOT_LABELS[insights.latest.slot]} · {formatDisplayDate(insights.latest.readingDate)}</small></dd></div>
+              </dl>
+            </section>
+          )}
+
+          {report.count > 0 && <GlucoseTrend daily={type === 'daily'} from={report.from} readings={report.readings} to={report.to} />}
+
+          {type !== 'daily' && (
             <>
-              <section className="report-summary" aria-labelledby="report-range-title">
-                <div className="report-summary__heading">
-                  <div><p className="eyebrow">Reporting period</p><h2 id="report-range-title">{formatRange(report.from, report.to)}</h2></div>
-                  <span>{report.count === 1 ? '1 reading' : `${report.count} readings`}</span>
-                </div>
-
-                {report.count === 0 ? (
-                  <div className="report-empty"><span><Activity size={25} /></span><div><strong>No readings in this period</strong><p>Add readings for this range and return here to see a summary and trend.</p></div></div>
-                ) : (
-                  <dl className="report-stat-list">
-                    <div><dt>Average glucose</dt><dd>{report.average.toFixed(1)} <span>mg/dl</span></dd></div>
-                    <div><dt>Highest</dt><dd>{report.highest} <span>mg/dl</span></dd></div>
-                    <div><dt>Lowest</dt><dd>{report.lowest} <span>mg/dl</span></dd></div>
-                    <div><dt>Readings</dt><dd>{report.count}</dd></div>
-                  </dl>
-                )}
-              </section>
-
-              {report.count > 0 && insights && (
-                <section className="report-insights" aria-labelledby="report-insights-title">
-                  <div className="section-heading"><div><p className="eyebrow">Coverage and context</p><h2 id="report-insights-title">What is behind the average</h2></div><span>{insights.coverage}% of days logged</span></div>
-                  <dl>
-                    <div><dt>Days with data</dt><dd>{insights.daysLogged}<small>of {insights.totalDays} days</small></dd></div>
-                    <div><dt>Readings / logged day</dt><dd>{insights.readingsPerLoggedDay.toFixed(1)}<small>average frequency</small></dd></div>
-                    <div><dt>Complete days</dt><dd>{insights.completeDays}<small>all four slots saved</small></dd></div>
-                    <div><dt>Most recorded slot</dt><dd>{insights.mostRecorded.shortLabel}<small>{insights.mostRecordedCount} entries</small></dd></div>
-                    <div><dt>Context notes</dt><dd>{insights.notesCount}<small>entries explained</small></dd></div>
-                    <div><dt>Last saved</dt><dd>{insights.latest.value}<small>{SLOT_LABELS[insights.latest.slot]} · {formatDisplayDate(insights.latest.readingDate)}</small></dd></div>
-                  </dl>
-                </section>
-              )}
-
-              {report.count > 0 && <GlucoseTrend daily={type === 'daily'} from={report.from} readings={report.readings} to={report.to} />}
-
-              {type !== 'daily' && (
-                <>
-                  <SlotAverages from={report.from} readings={report.readings} to={report.to} />
-                  <ConsistencyCalendar currentRange={type === 'month-to-date'} from={report.from} readings={report.readings} to={report.to} />
-                </>
-              )}
-
-              {type === 'daily' && report.readings.length > 0 && (
-                <section className="daily-report-list" aria-labelledby="daily-detail-title">
-                  <div className="section-heading"><div><p className="eyebrow">Daily detail</p><h2 id="daily-detail-title">Each check-in</h2></div></div>
-                  <div className="daily-report-list__items">
-                    {report.readings.map((reading) => (
-                      <article className="daily-report-row" key={reading.id}>
-                        <SlotMomentIcon slot={reading.slot} />
-                        <div><strong>{SLOT_LABELS[reading.slot]}</strong>{reading.notes && <small>{reading.notes}</small>}</div>
-                        <p><b>{reading.value}</b> mg/dl</p>
-                      </article>
-                    ))}
-                  </div>
-                </section>
-              )}
-              {type !== 'daily' && report.readings.length > 0 && <ReportLogbook readings={report.readings} />}
+              <SlotAverages from={report.from} readings={report.readings} to={report.to} />
+              <ConsistencyCalendar currentRange={type === 'month-to-date'} from={report.from} readings={report.readings} to={report.to} />
             </>
           )}
+
+          {type === 'daily' && report.readings.length > 0 && (
+            <section className="daily-report-list" aria-labelledby="daily-detail-title">
+              <div className="section-heading"><div><p className="eyebrow">Daily detail</p><h2 id="daily-detail-title">Each check-in</h2></div></div>
+              <div className="daily-report-list__items">
+                {report.readings.map((reading) => (
+                  <article className="daily-report-row" key={reading.id}>
+                    <SlotMomentIcon slot={reading.slot} />
+                    <div><strong>{SLOT_LABELS[reading.slot]}</strong>{reading.notes && <small>{reading.notes}</small>}</div>
+                    <p><b>{reading.value}</b> mg/dl</p>
+                  </article>
+                ))}
+              </div>
+            </section>
+          )}
+          {type !== 'daily' && report.readings.length > 0 && <ReportLogbook readings={report.readings} />}
         </>
       )}
     </div>

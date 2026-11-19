@@ -241,7 +241,7 @@ describe('reports', () => {
     );
   });
 
-  test('adds coverage and the previous comparable period without mixing readings', async () => {
+  test('adds coverage without mixing readings from another month', async () => {
     const { token } = await register();
     await addReading(token, '2025-02-03', 'morning', 100);
     await addReading(token, '2025-02-03', 'after_breakfast', 140);
@@ -255,24 +255,49 @@ describe('reports', () => {
     assert.equal(response.status, 200);
     assert.equal(response.body.report.daysLogged, 2);
     assert.equal(response.body.report.completeDays, 0);
-    const { readings: comparisonReadings, ...comparisonSummary } = response.body.report.comparison;
-    assert.deepEqual(
-      comparisonSummary,
-      {
-        from: '2025-02-01',
-        to: '2025-02-10',
-        highest: 140,
-        lowest: 100,
-        average: 120,
-        count: 2,
-        daysLogged: 1,
-        completeDays: 0
-      }
-    );
-    assert.deepEqual(
-      comparisonReadings.map((reading) => reading.readingDate),
-      ['2025-02-03', '2025-02-03']
-    );
+    assert.equal(response.body.report.comparison, undefined);
     assert.deepEqual(response.body.report.readings.map((reading) => reading.readingDate), ['2025-03-03', '2025-03-04']);
+  });
+
+  test('compares two independently selected date ranges', async () => {
+    const { token } = await register();
+    await addReading(token, '2025-01-05', 'morning', 105);
+    await addReading(token, '2025-01-20', 'after_dinner', 145);
+    await addReading(token, '2025-03-02', 'morning', 115);
+    await addReading(token, '2025-03-22', 'after_dinner', 155);
+
+    const response = await request(app)
+      .get('/api/reports/compare?fromA=2025-03-01&toA=2025-03-31&fromB=2025-01-01&toB=2025-01-31')
+      .set(authenticated(token));
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(
+      {
+        from: response.body.report.from,
+        to: response.body.report.to,
+        average: response.body.report.average,
+        count: response.body.report.count
+      },
+      { from: '2025-03-01', to: '2025-03-31', average: 135, count: 2 }
+    );
+    assert.deepEqual(
+      {
+        from: response.body.report.comparison.from,
+        to: response.body.report.comparison.to,
+        average: response.body.report.comparison.average,
+        count: response.body.report.comparison.count
+      },
+      { from: '2025-01-01', to: '2025-01-31', average: 125, count: 2 }
+    );
+  });
+
+  test('validates custom comparison ranges', async () => {
+    const { token } = await register();
+    const response = await request(app)
+      .get('/api/reports/compare?fromA=2025-03-31&toA=2025-03-01&fromB=2025-01-01&toB=2025-01-31')
+      .set(authenticated(token));
+
+    assert.equal(response.status, 400);
+    assert.equal(response.body.message, 'Period A must start on or before it ends.');
   });
 });

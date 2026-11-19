@@ -13,12 +13,13 @@ The mobile-friendly interface is designed for a short repeated task: today's for
 - Enforce value, date, duplicate-slot, and four-per-day rules in the API and database.
 - View daily, month-to-date, and complete previous-month statistics.
 - See a compact highest, lowest, one-decimal average, and count summary without decorative status judgments.
+- Compare any two independently chosen days or date ranges in a dedicated workspace, with quick starts for month-to-date, completed months, and rolling 30-day periods.
 - Compare the daily profile, day-by-day averages, time-slot averages, and logging consistency without mixing unlike readings into one trend.
 - Keep missing dates visible as breaks in the period trend instead of connecting readings across an unlogged day.
-- Review coverage, complete days, reading frequency, the last saved reading, the most-recorded slot, notes, and a neutral previous-period comparison.
+- Review coverage, complete days, reading frequency, the last saved reading, the most-recorded slot, notes, and neutral differences between chosen periods.
 - Open a detailed report logbook containing readings and their context notes.
 - Review a lightweight month-so-far summary directly below the daily check-in workflow.
-- Export raw readings as CSV, export a two-sheet Summary/Readings Excel workbook, print or save as PDF, and export the user's complete history.
+- Export raw readings as CSV, export Summary/Readings Excel workbooks (including both comparison periods when applicable), print or save as PDF, and export the user's complete history.
 - Use an in-app date picker, edit/delete controls, confirmation dialog, and generated profile avatar on desktop or mobile.
 - Paginate the complete reading history through the API.
 - Start PostgreSQL, the API, and the client with Docker Compose.
@@ -128,7 +129,7 @@ Start the Docker database, then run:
 npm test
 ```
 
-The backend tests truncate only `sweety_test`. They cover password hashing, duplicate accounts, all specified reading rules, notes, a full-day edit, cross-user isolation, pagination and export isolation, report calculations, empty reports, previous-period isolation, and the January-to-December boundary. The frontend tests cover required and range errors, create and edit requests with notes, rapid report-tab transitions, direct month-report navigation, daily aggregation with missing-date gaps, time-aware slot selection, and time-slot averages.
+The backend tests truncate only `sweety_test`. They cover password hashing, duplicate accounts, all specified reading rules, notes, a full-day edit, cross-user isolation, pagination and export isolation, report calculations, empty reports, independent comparison ranges, and the January-to-December boundary. The frontend tests cover required and range errors, create and edit requests with notes, rapid report-tab transitions, direct month-report navigation, custom comparison selection, daily aggregation with missing-date gaps, time-aware slot selection, and time-slot averages.
 
 Useful individual commands:
 
@@ -157,8 +158,9 @@ Except for health, registration, and login, routes require `Authorization: Beare
 | `GET` | `/api/reports/daily?date=YYYY-MM-DD` | Selected-day report |
 | `GET` | `/api/reports/month-to-date?date=YYYY-MM-DD` | First of month through selected date |
 | `GET` | `/api/reports/monthly?date=YYYY-MM-DD` | Complete month before selected date |
+| `GET` | `/api/reports/compare?fromA=...&toA=...&fromB=...&toB=...` | Compare two chosen ranges |
 
-Report responses include `from`, `to`, `highest`, `lowest`, `average`, `count`, logging coverage, complete-day counts, the ordered readings, and a summary for the previous comparable period. The client uses the same response to render statistics, charts, consistency, comparison, and exports without duplicating report calculations.
+Report responses include `from`, `to`, `highest`, `lowest`, `average`, `count`, logging coverage, complete-day counts, and ordered readings. The comparison endpoint returns that same shape for Period A plus a `comparison` object containing Period B, so charts and exports use one consistent calculation path.
 
 ## Project structure
 

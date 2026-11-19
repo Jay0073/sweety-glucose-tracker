@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { BarChart3, BookOpen } from 'lucide-react';
+import { BarChart3, BookOpen, Columns2 } from 'lucide-react';
 import { apiRequest } from '../api.js';
 import { downloadReadingsCsv } from '../exportUtils.js';
 import { formatDisplayDate, localToday, slotForHour, SLOTS } from '../readingConfig.js';
@@ -12,6 +12,7 @@ import { ProfileMenu } from './ProfileMenu.jsx';
 import { ReadingForm } from './ReadingForm.jsx';
 
 const Reports = lazy(() => import('./Reports.jsx').then((module) => ({ default: module.Reports })));
+const ComparisonWorkspace = lazy(() => import('./ComparisonWorkspace.jsx').then((module) => ({ default: module.ComparisonWorkspace })));
 
 export function Dashboard({ session, onLogout }) {
   const [activeView, setActiveView] = useState('readings');
@@ -149,6 +150,7 @@ export function Dashboard({ session, onLogout }) {
         <nav aria-label="Main navigation">
           <button aria-current={activeView === 'readings' ? 'page' : undefined} className={activeView === 'readings' ? 'is-active' : ''} type="button" onClick={() => setActiveView('readings')}><BookOpen size={16} /><span>Readings</span></button>
           <button aria-current={activeView === 'reports' ? 'page' : undefined} className={activeView === 'reports' ? 'is-active' : ''} type="button" onClick={() => openReports('daily')}><BarChart3 size={16} /><span>Reports</span></button>
+          <button aria-current={activeView === 'compare' ? 'page' : undefined} className={activeView === 'compare' ? 'is-active' : ''} type="button" onClick={() => setActiveView('compare')}><Columns2 size={16} /><span>Compare</span></button>
         </nav>
         <ProfileMenu exporting={exporting} user={session.user} onExportAll={exportAllHistory} onLogout={onLogout} />
       </header>
@@ -156,6 +158,10 @@ export function Dashboard({ session, onLogout }) {
       {activeView === 'reports' ? (
         <Suspense fallback={<section className="report-loading"><span className="spinner" /><p>Opening reports…</p></section>}>
           <Reports initialType={reportEntryType} selectedDate={date} token={session.token} user={session.user} onDateChange={setDate} />
+        </Suspense>
+      ) : activeView === 'compare' ? (
+        <Suspense fallback={<section className="report-loading"><span className="spinner" /><p>Opening comparison…</p></section>}>
+          <ComparisonWorkspace token={session.token} user={session.user} />
         </Suspense>
       ) : (
         <div className="dashboard-content journal-view">

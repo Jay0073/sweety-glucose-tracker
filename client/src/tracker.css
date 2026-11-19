@@ -442,7 +442,6 @@
 .report-summary .report-stat-list dd { font-size: clamp(1.8rem, 3vw, 2.55rem); }
 
 .report-insights,
-.period-comparison,
 .report-logbook { margin-top: 20px; border: 1px solid var(--line); border-radius: 24px; background: white; box-shadow: 0 14px 38px rgba(28, 74, 68, 0.07); }
 .report-insights { padding: clamp(24px, 4vw, 40px); }
 .report-insights dl { display: grid; margin: 0; grid-template-columns: repeat(3, 1fr); border: 1px solid #e0eae8; border-radius: 17px; background: #f8fbfa; }
@@ -452,16 +451,6 @@
 .report-insights dt { color: var(--muted); font-size: 0.59rem; font-weight: 740; text-transform: uppercase; letter-spacing: 0.07em; }
 .report-insights dd { overflow: hidden; margin: 7px 0 0; font-family: 'Newsreader Variable', Georgia, serif; font-size: 1.5rem; font-weight: 600; letter-spacing: -0.035em; text-overflow: ellipsis; white-space: nowrap; }
 .report-insights dd small { display: block; overflow: hidden; margin-top: 5px; color: var(--muted); font-family: 'Manrope Variable', system-ui, sans-serif; font-size: 0.55rem; font-weight: 620; letter-spacing: 0; text-overflow: ellipsis; white-space: nowrap; }
-
-.period-comparison { display: grid; align-items: center; padding: clamp(24px, 4vw, 36px); grid-template-columns: minmax(260px, 0.8fr) minmax(0, 1.2fr); gap: clamp(25px, 5vw, 65px); }
-.period-comparison h2 { margin: 0; font-family: 'Newsreader Variable', Georgia, serif; font-size: clamp(1.8rem, 3vw, 2.55rem); font-weight: 550; letter-spacing: -0.04em; line-height: 1; }
-.period-comparison > div > p:last-child { margin: 12px 0 0; color: var(--muted); font-size: 0.68rem; line-height: 1.6; }
-.period-comparison dl { display: grid; margin: 0; grid-template-columns: repeat(3, 1fr); border: 1px solid #e0eae8; border-radius: 16px; }
-.period-comparison dl > div { padding: 16px; border-right: 1px solid #e0eae8; }
-.period-comparison dl > div:last-child { border-right: 0; }
-.period-comparison dt { color: var(--muted); font-size: 0.57rem; line-height: 1.4; }
-.period-comparison dd { margin: 8px 0 0; font-family: 'Newsreader Variable', Georgia, serif; font-size: 1.12rem; font-weight: 610; }
-.period-comparison__empty { margin: 0; padding: 18px; border-radius: 14px; color: var(--muted); background: #f5f9f8; font-size: 0.72rem; }
 
 .report-logbook { overflow: hidden; }
 .report-logbook > summary { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 22px clamp(20px, 4vw, 35px); cursor: pointer; list-style: none; }
@@ -492,10 +481,41 @@
 .report-logbook__row .is-empty { font-style: italic; opacity: 0.72; }
 
 /* Period comparison workspace */
-.report-mode-switch { display: flex; padding: 4px; border: 1px solid var(--line); border-radius: 13px; background: #e8f1ef; }
-.report-actions .report-mode-switch button { min-height: 40px; padding: 0 11px; border: 0; border-radius: 9px; color: var(--muted); background: transparent; box-shadow: none; }
-.report-actions .report-mode-switch button.is-active { color: var(--teal-dark); background: white; box-shadow: 0 3px 12px rgba(23, 68, 63, 0.1); }
-.report-actions .report-mode-switch button:hover:not(:disabled) { background: rgba(255, 255, 255, 0.72); }
+.comparison-heading { max-width: 760px; margin-bottom: 30px; }
+.comparison-heading h1 { margin: 0; font-family: 'Newsreader Variable', Georgia, serif; font-size: clamp(3.2rem, 6vw, 5.5rem); font-weight: 520; letter-spacing: -0.055em; line-height: 0.9; }
+.comparison-heading > p:last-child { max-width: 680px; margin: 18px 0 0; color: var(--muted); line-height: 1.7; }
+.comparison-builder { margin-bottom: 20px; padding: clamp(24px, 4vw, 38px); border: 1px solid var(--line); border-radius: 24px; background: white; box-shadow: 0 14px 38px rgba(28, 74, 68, 0.07); }
+.comparison-builder__heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
+.comparison-builder__heading h2 { margin: 0; font-size: 1.25rem; letter-spacing: -0.035em; }
+.comparison-builder__heading > svg { padding: 10px; box-sizing: content-box; border-radius: 13px; color: var(--teal); background: var(--teal-soft); }
+.comparison-presets { display: grid; margin-top: 22px; grid-template-columns: repeat(3, 1fr); gap: 9px; }
+.comparison-presets button { min-height: 72px; padding: 13px 15px; border: 1px solid #dbe7e4; border-radius: 14px; color: var(--ink); background: #f8fbfa; text-align: left; }
+.comparison-presets button:hover { border-color: #8cc4bb; background: var(--teal-soft); }
+.comparison-presets strong,
+.comparison-presets small { display: block; }
+.comparison-presets strong { font-size: 0.72rem; }
+.comparison-presets small { margin-top: 5px; color: var(--muted); font-size: 0.56rem; line-height: 1.4; }
+.comparison-range-layout { display: grid; align-items: center; margin-top: 24px; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 13px; }
+.comparison-range-card { min-width: 0; margin: 0; padding: 17px; border: 1px solid #dce7e5; border-radius: 18px; background: linear-gradient(145deg, #fbfdfc, #f2f8f6); }
+.comparison-range-card--b { background: linear-gradient(145deg, #fbfbfd, #f2f3f9); }
+.comparison-range-card legend { display: flex; align-items: center; padding: 0 7px 0 0; color: var(--ink); font-size: 0.75rem; font-weight: 800; }
+.comparison-range-card legend span { display: grid; width: 28px; height: 28px; place-items: center; margin-right: 8px; border-radius: 9px; color: white; background: var(--teal); font-size: 0.62rem; }
+.comparison-range-card--b legend span { background: #6872a0; }
+.comparison-range-card > p { margin: 4px 0 15px; color: var(--muted); font-size: 0.61rem; }
+.comparison-range-card > div { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.comparison-range-card label { min-width: 0; color: var(--muted); font-size: 0.56rem; font-weight: 760; letter-spacing: 0.06em; text-transform: uppercase; }
+.comparison-range-card input { display: block; width: 100%; min-width: 0; min-height: 43px; margin-top: 6px; padding: 0 10px; border: 1px solid #d4e2df; border-radius: 11px; color: var(--ink); background: white; font: 700 0.66rem 'Manrope Variable', system-ui, sans-serif; color-scheme: light; }
+.comparison-range-card input:focus { border-color: var(--teal); outline: 3px solid rgba(13, 107, 98, 0.12); }
+.comparison-swap { display: inline-flex; min-height: 44px; align-items: center; gap: 6px; padding: 0 11px; border: 1px solid var(--line); border-radius: 12px; color: var(--muted); background: white; font-size: 0.62rem; font-weight: 780; }
+.comparison-swap:hover { color: var(--teal); background: var(--teal-soft); }
+.comparison-builder__footer { display: flex; align-items: center; justify-content: space-between; gap: 22px; margin-top: 20px; padding-top: 20px; border-top: 1px solid #e1eae8; }
+.comparison-builder__footer p { max-width: 630px; margin: 0; color: var(--muted); font-size: 0.62rem; line-height: 1.55; }
+.comparison-run { min-height: 46px; padding: 0 20px; border: 0; border-radius: 12px; color: white; background: var(--teal); font-size: 0.72rem; font-weight: 800; white-space: nowrap; box-shadow: 0 8px 22px rgba(13, 107, 98, 0.18); }
+.comparison-run:hover { background: var(--teal-dark); }
+.comparison-result-toolbar { display: grid; align-items: center; margin-bottom: 20px; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; }
+.comparison-result-toolbar .report-identity { margin-bottom: 0; }
+.comparison-result-actions { align-self: stretch; }
+.comparison-result-actions button { min-height: 100%; }
 
 .comparison-view { display: grid; gap: 20px; }
 .comparison-periods,
@@ -553,6 +573,7 @@
 .comparison-trend-chart { width: 100%; height: 330px; }
 .comparison-slot-chart { width: 100%; height: 290px; }
 .comparison-tooltip p { display: grid; align-items: center; margin: 8px 0 0; grid-template-columns: auto 1fr auto; gap: 7px; color: var(--muted); font-size: 0.6rem; }
+.comparison-tooltip p span small { display: block; margin-top: 2px; font-size: 0.5rem; font-weight: 600; }
 .comparison-tooltip p b { color: var(--ink); font-weight: 780; }
 
 @media (max-width: 900px) {
@@ -567,7 +588,10 @@
   .report-type-switch { max-width: none; }
   .report-identity { grid-template-columns: 1fr; }
   .report-identity dl > div:first-child { padding-left: 0; border-left: 0; }
-  .period-comparison { grid-template-columns: 1fr; }
+  .comparison-range-layout { grid-template-columns: 1fr; }
+  .comparison-swap { justify-self: center; }
+  .comparison-result-toolbar { grid-template-columns: 1fr; }
+  .comparison-result-actions { justify-content: flex-end; }
   .comparison-periods { grid-template-columns: 1fr; }
   .comparison-periods__heading h2 { max-width: none; }
 }
@@ -600,16 +624,20 @@
   .report-insights dl > div:nth-child(3n) { border-right: 1px solid #e0eae8; border-bottom: 1px solid #e0eae8; }
   .report-insights dl > div:nth-child(even) { border-right: 0; }
   .report-insights dl > div:nth-last-child(-n + 2) { border-bottom: 0; }
-  .period-comparison dl { grid-template-columns: 1fr; }
-  .period-comparison dl > div { border-right: 0; border-bottom: 1px solid #e0eae8; }
-  .period-comparison dl > div:last-child { border-bottom: 0; }
   .report-logbook__header { display: none; }
   .report-logbook__row { padding-block: 15px; grid-template-columns: 1fr auto; gap: 10px 14px; }
   .report-logbook__slot { grid-column: 1; }
   .report-logbook__value { grid-column: 2; grid-row: 1 / 3; }
   .report-logbook__row > p:last-child { grid-column: 1 / -1; padding-top: 8px; border-top: 1px dashed #dfe9e7; }
-  .report-actions .report-mode-switch { grid-column: 1 / -1; }
-  .report-actions .report-mode-switch button { flex: 1; }
+  .comparison-workspace { padding-top: 32px; }
+  .comparison-heading h1 { font-size: clamp(3rem, 15vw, 4.15rem); }
+  .comparison-builder { padding: 23px 17px; border-radius: 20px; }
+  .comparison-presets { grid-template-columns: 1fr; }
+  .comparison-presets button { min-height: 0; }
+  .comparison-builder__footer { align-items: stretch; flex-direction: column; }
+  .comparison-run { width: 100%; }
+  .comparison-result-actions { display: grid; grid-template-columns: 1fr 1fr; }
+  .comparison-result-actions button { justify-content: center; min-height: 48px; }
   .comparison-periods,
   .comparison-ledger,
   .comparison-chart-card,
@@ -654,11 +682,13 @@
 @media print {
   .report-identity,
   .report-insights,
-  .period-comparison,
   .report-logbook,
   .comparison-periods,
   .comparison-ledger,
   .comparison-chart-card,
   .comparison-logging { break-inside: avoid; box-shadow: none; }
+  .comparison-heading,
+  .comparison-builder,
+  .comparison-result-actions { display: none !important; }
   .report-logbook:not([open]) { display: none; }
 }

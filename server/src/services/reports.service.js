@@ -32,34 +32,19 @@ function dateRange(type, selectedDate) {
   return { from: toIsoDate(firstOfPreviousMonth), to: toIsoDate(lastOfPreviousMonth) };
 }
 
-function shiftUtcDate(value, days) {
-  const date = new Date(`${value}T12:00:00Z`);
-  date.setUTCDate(date.getUTCDate() + days);
-  return toIsoDate(date);
+function rangeDays(range) {
+  return Math.round((new Date(`${range.to}T12:00:00Z`) - new Date(`${range.from}T12:00:00Z`)) / 86400000) + 1;
 }
 
-function previousRange(type, range) {
-  if (type === 'daily') {
-    const date = shiftUtcDate(range.from, -1);
-    return { from: date, to: date };
+function customRange(from, to, label) {
+  if (!isValidDateString(from) || !isValidDateString(to)) {
+    throw new ApiError(400, `Please pick valid dates for ${label}.`);
   }
-
-  if (type === 'month-to-date') {
-    const [year, month, day] = range.to.split('-').map(Number);
-    const lastDayOfPreviousMonth = new Date(Date.UTC(year, month - 1, 0)).getUTCDate();
-    const previousMonthEnd = new Date(Date.UTC(year, month - 2, Math.min(day, lastDayOfPreviousMonth)));
-    return {
-      from: toIsoDate(new Date(Date.UTC(previousMonthEnd.getUTCFullYear(), previousMonthEnd.getUTCMonth(), 1))),
-      to: toIsoDate(previousMonthEnd)
-    };
-  }
-
-  const end = shiftUtcDate(range.from, -1);
-  const endDate = new Date(`${end}T12:00:00Z`);
-  return {
-    from: toIsoDate(new Date(Date.UTC(endDate.getUTCFullYear(), endDate.getUTCMonth(), 1))),
-    to: end
-  };
+  if (from > to) throw new ApiError(400, `${label} must start on or before it ends.`);
+  if (to > todayInAppTimeZone()) throw new ApiError(400, 'Date cannot be in the future.');
+  const range = { from, to };
+  if (rangeDays(range) > 366) throw new ApiError(400, `${label} can cover up to 366 days.`);
+  return range;
 }
 
 function toSummary(row) {
@@ -113,29 +98,43 @@ async function getReadings(userId, range) {
 
 export async function getReport(userId, type, selectedDate) {
   const range = dateRange(type, selectedDate);
-  const comparisonRange = previousRange(type, range);
-  const summaryPromise = getSummary(userId, range);
-  const comparisonPromise = getSummary(userId, comparisonRange);
-  const readingsPromise = getReadings(userId, range);
-  const comparisonReadingsPromise = getReadings(userId, comparisonRange);
-
-  const [summary, comparisonSummary, readings, comparisonReadings] = await Promise.all([
-    summaryPromise,
-    comparisonPromise,
-    readingsPromise,
-    comparisonReadingsPromise
+  const [summary, readings] = await Promise.all([
+    getSummary(userId, range),
+    getReadings(userId, range)
   ]);
   return {
     type,
     selectedDate,
     ...range,
     ...summary,
+    readings
+  };
+}
+
+export async function getComparison(userId, query) {
+  const range = customRange(query.fromA, query.toA, 'Period A');
+  const comparisonRange = customRange(query.fromB, query.toB, 'Period B');
+  if (range.from === comparisonRange.from && range.to === comparisonRange.to) {
+    throw new ApiError(400, 'Choose two different periods to compare.');
+  }
+
+  const [summary, comparisonSummary, readings, comparisonReadings] = await Promise.all([
+    getSummary(userId, range),
+    getSummary(userId, comparisonRange),
+    getReadings(userId, range),
+    getReadings(userId, comparisonRange)
+  ]);
+
+  return {
+    type: 'comparison',
+    ...range,
+    ...summary,
+    readings,
     comparison: {
       ...comparisonRange,
       ...comparisonSummary,
       readings: comparisonReadings
-    },
-    readings
+    }
   };
 }
 

@@ -7,7 +7,6 @@ vi.mock('../api.js', () => ({ apiRequest: vi.fn() }));
 vi.mock('./GlucoseTrend.jsx', () => ({ GlucoseTrend: () => <div>Trend chart</div> }));
 vi.mock('./ConsistencyCalendar.jsx', () => ({ ConsistencyCalendar: () => <div>Consistency calendar</div> }));
 vi.mock('./SlotAverages.jsx', () => ({ SlotAverages: () => <div>Slot averages</div> }));
-vi.mock('./ComparisonView.jsx', () => ({ ComparisonView: ({ type }) => <div>Comparison workspace: {type}</div> }));
 
 const dailyReport = {
   type: 'daily',
@@ -66,19 +65,4 @@ describe('Reports', () => {
     expect(screen.getByRole('tab', { name: /month to date/i })).toHaveAttribute('aria-selected', 'true');
   });
 
-  it('keeps the comparison view active while changing report ranges', async () => {
-    apiRequest
-      .mockResolvedValueOnce({ report: dailyReport })
-      .mockResolvedValueOnce({ report: monthReport });
-
-    render(<Reports selectedDate="2026-11-18" token="test-token" onDateChange={vi.fn()} />);
-    await screen.findByRole('heading', { name: '18 Nov 2026' });
-
-    fireEvent.click(screen.getByRole('tab', { name: 'Compare' }));
-    expect(screen.getByText('Comparison workspace: daily')).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole('tab', { name: /month to date/i }));
-    expect(await screen.findByText('Comparison workspace: month-to-date')).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'Compare' })).toHaveAttribute('aria-selected', 'true');
-  });
 });
